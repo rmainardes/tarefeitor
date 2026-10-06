@@ -2,8 +2,7 @@ import type { ReactNode } from "react";
 import { MoonStar } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { PeriodMeta } from "@/lib/panel/panel-types";
-import type { ScheduledTask } from "@/components/panel/hooks/use-task-board";
+import type { PeriodMeta, ScheduledTask } from "@/lib/panel/panel-types";
 
 interface PeriodSectionProps {
   meta: PeriodMeta;

@@ -1,9 +1,8 @@
 /**
- * Datas e recorrência — parte pura do domínio (espelha `lib/domain`
- * do plano, para o porte em Next.js). Fuso fixo America/Sao_Paulo.
+ * Formatação de datas para o painel (rótulos em pt-BR). Fuso fixo
+ * America/Sao_Paulo. A recorrência mock (`resolveDue`) saiu daqui na T2c:
+ * dados reais já chegam com a data de vencimento resolvida pelo servidor.
  */
-import type { Task } from "./panel-types";
-
 export const APP_TIMEZONE = "America/Sao_Paulo";
 
 const isoFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -24,80 +23,8 @@ export function addDays(isoDate: string, days: number): string {
   return base.toISOString().slice(0, 10);
 }
 
-/** 1 = segunda … 7 = domingo. */
-export function isoWeekday(isoDate: string): number {
-  const day = new Date(`${isoDate}T12:00:00Z`).getUTCDay();
-  return day === 0 ? 7 : day;
-}
-
 export function dayOfMonth(isoDate: string): number {
   return Number(isoDate.slice(8, 10));
-}
-
-export function lastDayOfMonth(isoDate: string): number {
-  const year = Number(isoDate.slice(0, 4));
-  const month = Number(isoDate.slice(5, 7));
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-/** Dia do mês respeitando mês curto (dia 31 em fevereiro vira 28/29). */
-function clampMonthDay(isoDate: string, monthDay: number): string {
-  const day = Math.min(monthDay, lastDayOfMonth(isoDate));
-  return `${isoDate.slice(0, 7)}-${String(day).padStart(2, "0")}`;
-}
-
-export interface DueInfo {
-  /** Data da ocorrência (a do vencimento, também para as mensais adiantadas). */
-  dueDate: string;
-  /** Mensal que já aparece na lista, mas ainda não vence. */
-  upcoming: boolean;
-}
-
-/** `null` quando a tarefa não está na lista deste dia. */
-export function resolveDue(
-  task: Task,
-  isoDate: string,
-  examEves: ReadonlySet<string> = new Set(),
-): DueInfo | null {
-  switch (task.kind) {
-    case "daily":
-      return { dueDate: isoDate, upcoming: false };
-    case "weekly":
-      return (task.weekdays ?? []).includes(isoWeekday(isoDate))
-        ? { dueDate: isoDate, upcoming: false }
-        : null;
-    case "exam_eve":
-      return examEves.has(isoDate)
-        ? { dueDate: isoDate, upcoming: false }
-        : null;
-    case "monthly": {
-      const lead = task.leadDays ?? 3;
-      const thisMonth = clampMonthDay(isoDate, task.monthDay ?? 1);
-      if (isoDate <= thisMonth) {
-        const diff = daysBetween(isoDate, thisMonth);
-        return diff <= lead
-          ? { dueDate: thisMonth, upcoming: thisMonth !== isoDate }
-          : null;
-      }
-      const nextMonthBase = addDays(`${isoDate.slice(0, 7)}-28`, 10);
-      const nextMonth = clampMonthDay(nextMonthBase, task.monthDay ?? 1);
-      return daysBetween(isoDate, nextMonth) <= lead
-        ? { dueDate: nextMonth, upcoming: true }
-        : null;
-    }
-    default:
-      return null;
-  }
-}
-
-export function daysBetween(fromIso: string, toIso: string): number {
-  const a = new Date(`${fromIso}T12:00:00Z`).getTime();
-  const b = new Date(`${toIso}T12:00:00Z`).getTime();
-  return Math.round((b - a) / 86_400_000);
-}
-
-export function occurrenceKey(taskId: string, isoDate: string): string {
-  return `${taskId}|${isoDate}`;
 }
 
 const weekdayFormatter = new Intl.DateTimeFormat("pt-BR", {

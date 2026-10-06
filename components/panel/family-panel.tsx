@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
 import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
-import { useTaskBoard } from "@/components/panel/hooks/use-task-board";
 import { JudgementCard } from "@/components/panel/judgement-card";
 import { PanelActions } from "@/components/panel/panel-actions";
 import { PanelHeader } from "@/components/panel/panel-header";
@@ -15,28 +15,44 @@ import { PeriodSection } from "@/components/panel/period-section";
 import { PersonSwitcher } from "@/components/panel/person-switcher";
 import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
-import { birthdays, periods, TODAY, YESTERDAY } from "@/lib/panel/panel-seed";
+import { birthdays, periods } from "@/lib/panel/panel-seed";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { Person, PersonSlug } from "@/lib/panel/panel-types";
+import type { Person, PersonSlug, ScheduledTask } from "@/lib/panel/panel-types";
 
 interface FamilyPanelProps {
-  /** Placar e seletor já vêm do servidor (T2b). A lista de tarefas ainda é mock (T2c). */
   people: Person[];
   scores: BoardScore[];
   /** Pessoa do cookie real `selected_person`, resolvida no servidor. */
   initialSelected: PersonSlug;
+  today: string;
+  yesterday: string;
+  /** Tarefas da pessoa selecionada (T2c); marcar ainda é inerte até a T2d. */
+  tasksToday: ScheduledTask[];
+  tasksYesterday: ScheduledTask[];
+}
+
+/** T2d troca por `markDoneForm`/`markMissedForm`/`undoMarkForm` (app/actions/tasks.ts). */
+function notifyMarkingNotWired() {
+  toast("Marcação ainda não conectada", { description: "Entra na T2d do porte." });
 }
 
 /**
- * Painel (T06, migrado em T2b): placar e seletor com dados reais; lista de
- * hoje/ontem e marcação por toque seguem mock até a T2c/T2d.
+ * Painel (T06, migrado em T2b/T2c): placar, seletor e lista de tarefas com
+ * dados reais. Marcar como feita/não cumprida ainda não grava (T2d).
  */
-export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProps) => {
+export const FamilyPanel = ({
+  people,
+  scores,
+  initialSelected,
+  today,
+  yesterday,
+  tasksToday,
+  tasksYesterday,
+}: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const { markDone, undo, markMissed, scheduleFor } = useTaskBoard();
   const { pref: themePref, cycleTheme, mode, toggleMode, now } = usePanelChrome();
   const [day, setDay] = useState<PanelDay>("today");
 
@@ -52,11 +68,8 @@ export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProp
     });
   };
 
-  const isoDate = day === "today" ? TODAY : YESTERDAY;
-  const rows = scheduleFor(selected, isoDate);
-  const yesterdayPending = scheduleFor(selected, YESTERDAY).filter(
-    (row) => row.status === "pending",
-  ).length;
+  const rows = day === "today" ? tasksToday : tasksYesterday;
+  const yesterdayPending = tasksYesterday.filter((row) => row.status === "pending").length;
 
   const weightTotal = rows.reduce((sum, row) => sum + row.task.weight, 0);
   const weightDone = rows
@@ -76,7 +89,7 @@ export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProp
       className="app-canvas flex min-h-screen flex-col bg-background"
     >
       <PanelHeader
-        todayIso={TODAY}
+        todayIso={today}
         now={now}
         themePref={themePref}
         onCycleTheme={cycleTheme}
@@ -114,8 +127,8 @@ export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProp
             <DayTabs
               value={day}
               onChange={setDay}
-              todayIso={TODAY}
-              yesterdayIso={YESTERDAY}
+              todayIso={today}
+              yesterdayIso={yesterday}
               yesterdayPending={yesterdayPending}
             />
           </div>
@@ -134,9 +147,9 @@ export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProp
                   <TaskCard
                     key={row.task.id}
                     row={row}
-                    onMarkDone={() => markDone(row.task.id, row.dueDate)}
-                    onUndo={() => undo(row.task.id, row.dueDate)}
-                    onMarkMissed={() => markMissed(row.task.id, row.dueDate)}
+                    onMarkDone={notifyMarkingNotWired}
+                    onUndo={notifyMarkingNotWired}
+                    onMarkMissed={notifyMarkingNotWired}
                   />
                 )}
               />
@@ -145,7 +158,7 @@ export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProp
         </section>
 
         <aside className="flex flex-col gap-5 lg:col-span-5">
-          <BirthdayStrip birthdays={birthdays} todayIso={TODAY} />
+          <BirthdayStrip birthdays={birthdays} todayIso={today} />
           <JudgementCard />
           <PanelActions variant="rail" className="hidden lg:flex" />
         </aside>

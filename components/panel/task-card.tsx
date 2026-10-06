@@ -23,8 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { personName } from "@/lib/panel/panel-people";
 import { dayOfMonth } from "@/lib/panel/panel-schedule";
-import type { OccurrenceStatus, Task } from "@/lib/panel/panel-types";
-import type { ScheduledTask } from "@/components/panel/hooks/use-task-board";
+import type { OccurrenceStatus, ScheduledTask, Task } from "@/lib/panel/panel-types";
 
 interface TaskCardProps {
   row: ScheduledTask;

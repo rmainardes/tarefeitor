@@ -14,9 +14,8 @@
 import type { ResolvedTask, TaskListItem } from "@/lib/data/occurrenceResolution";
 import type { PersonRecord } from "@/lib/data/people";
 import type { ScoreboardEntry } from "@/lib/data/scoreboard";
-import type { ScheduledTask } from "@/components/panel/hooks/use-task-board";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { Person, PersonSlug, Task } from "@/lib/panel/panel-types";
+import type { Person, PersonSlug, ScheduledTask, Task } from "@/lib/panel/panel-types";
 
 const PERSON_SLUGS: readonly PersonSlug[] = ["pedro", "vania", "rodrigo"];
 

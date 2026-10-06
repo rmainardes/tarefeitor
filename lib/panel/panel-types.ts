@@ -47,6 +47,16 @@ export interface Task {
   leadDays?: number;
 }
 
+export interface ScheduledTask {
+  task: Task;
+  dueDate: string;
+  /** Mensal mostrada com antecedência mas ainda não vencida. Dados reais sempre `false` (sem fonte ainda). */
+  upcoming: boolean;
+  status: OccurrenceStatus;
+  doneBy?: PersonSlug;
+  note?: string;
+}
+
 /** Acumulado do mês até ontem: o painel soma por cima os dias em tela. */
 export interface MonthBaseline {
   doneWeight: number;
