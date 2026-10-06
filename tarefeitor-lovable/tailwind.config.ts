@@ -124,6 +124,22 @@ export default {
           "0%": { backgroundPosition: "-140% 0" },
           "100%": { backgroundPosition: "240% 0" },
         },
+        "confetti-fall": {
+          "0%": {
+            transform: "translate3d(0, 0, 0) rotate(0deg)",
+            opacity: "1",
+          },
+          "85%": { opacity: "1" },
+          "100%": {
+            transform:
+              "translate3d(var(--drift, 0px), 112vh, 0) rotate(720deg)",
+            opacity: "0",
+          },
+        },
+        "reveal-flip": {
+          "0%": { opacity: "0", transform: "translateY(18px) scale(0.94)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -133,6 +149,8 @@ export default {
         "stamp-in": "stamp-in 240ms cubic-bezier(0.2, 0, 0, 1.18)",
         breathe: "breathe 2.6s ease-in-out infinite",
         sheen: "sheen 3.2s linear infinite",
+        "confetti-fall": "confetti-fall 3s linear forwards",
+        "reveal-flip": "reveal-flip 420ms cubic-bezier(0.2, 0, 0, 1.18)",
       },
     },
   },
