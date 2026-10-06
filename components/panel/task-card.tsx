@@ -276,6 +276,10 @@ const TaskGlyph = ({
           onError={() => setImageFailed(true)}
           className="size-full object-cover"
         />
+      ) : typeof Icon === "string" ? (
+        <span className="text-2xl" aria-hidden>
+          {Icon}
+        </span>
       ) : (
         <Icon
           className={cn(

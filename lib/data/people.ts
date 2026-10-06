@@ -15,6 +15,7 @@ export interface PersonRecord {
   id: number;
   slug: string;
   name: string;
+  isAdult: boolean;
   color: string;
   photoPath: string;
   photoFocus: string;
@@ -24,7 +25,7 @@ export interface PersonRecord {
 export async function listPeople(): Promise<PersonRecord[]> {
   const { data, error } = await getSupabaseAdmin()
     .from("people")
-    .select("id, slug, name, color, photo_path, photo_focus")
+    .select("id, slug, name, is_adult, color, photo_path, photo_focus")
     .order("id");
 
   if (error) throw new Error(error.message);
@@ -33,6 +34,7 @@ export async function listPeople(): Promise<PersonRecord[]> {
     id: row.id,
     slug: row.slug,
     name: row.name,
+    isAdult: row.is_adult,
     color: row.color,
     photoPath: row.photo_path,
     photoFocus: row.photo_focus,

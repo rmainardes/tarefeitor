@@ -29,12 +29,17 @@ export interface Task {
   id: string;
   personSlug: PersonSlug;
   title: string;
-  icon: LucideIcon;
+  /** Mock: ícone do lucide-react. Dados reais: emoji gravado em `tasks.icon`. */
+  icon: LucideIcon | string;
   /** Ilustração própria para tarefas peculiares (Everest, Pingo). */
   image?: string;
   period: TaskPeriod;
   weight: 1 | 2 | 3;
-  kind: RecurrenceKind;
+  /**
+   * Só a seed mock preenche (orienta `panel-schedule.resolveDue`). Dados reais já
+   * chegam com a data resolvida pelo servidor, então essa recorrência não é exposta.
+   */
+  kind?: RecurrenceKind;
   /** ISO 1 = segunda … 7 = domingo. */
   weekdays?: number[];
   monthDay?: number;
