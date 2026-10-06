@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
+import { markDone, markMissed, undoMark } from "@/app/actions/tasks";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
 import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
@@ -18,6 +19,7 @@ import { TaskCard } from "@/components/panel/task-card";
 import { birthdays, periods } from "@/lib/panel/panel-seed";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
 import type { Person, PersonSlug, ScheduledTask } from "@/lib/panel/panel-types";
+import type { ActionResult } from "@/lib/validation";
 
 interface FamilyPanelProps {
   people: Person[];
@@ -26,19 +28,13 @@ interface FamilyPanelProps {
   initialSelected: PersonSlug;
   today: string;
   yesterday: string;
-  /** Tarefas da pessoa selecionada (T2c); marcar ainda é inerte até a T2d. */
   tasksToday: ScheduledTask[];
   tasksYesterday: ScheduledTask[];
 }
 
-/** T2d troca por `markDoneForm`/`markMissedForm`/`undoMarkForm` (app/actions/tasks.ts). */
-function notifyMarkingNotWired() {
-  toast("Marcação ainda não conectada", { description: "Entra na T2d do porte." });
-}
-
 /**
- * Painel (T06, migrado em T2b/T2c): placar, seletor e lista de tarefas com
- * dados reais. Marcar como feita/não cumprida ainda não grava (T2d).
+ * Painel (T06, migrado em T2b-T2d): placar, seletor, lista de tarefas e
+ * marcação por toque, todos com dados reais.
  */
 export const FamilyPanel = ({
   people,
@@ -64,6 +60,17 @@ export const FamilyPanel = ({
     if (!person) return;
     startTransition(async () => {
       await selectPerson(person.id);
+      router.refresh();
+    });
+  };
+
+  const runTaskAction = (action: () => Promise<ActionResult>) => {
+    startTransition(async () => {
+      const result = await action();
+      if (!result.ok) {
+        toast(result.message);
+        return;
+      }
       router.refresh();
     });
   };
@@ -147,9 +154,26 @@ export const FamilyPanel = ({
                   <TaskCard
                     key={row.task.id}
                     row={row}
-                    onMarkDone={notifyMarkingNotWired}
-                    onUndo={notifyMarkingNotWired}
-                    onMarkMissed={notifyMarkingNotWired}
+                    onMarkDone={() =>
+                      runTaskAction(() =>
+                        markDone({ taskId: row.task.id, dueDate: row.dueDate, actorId: selectedPerson.id }),
+                      )
+                    }
+                    onUndo={() =>
+                      runTaskAction(() =>
+                        undoMark({ taskId: row.task.id, dueDate: row.dueDate, actorId: selectedPerson.id }),
+                      )
+                    }
+                    onMarkMissed={() =>
+                      runTaskAction(() =>
+                        markMissed({
+                          taskId: row.task.id,
+                          dueDate: row.dueDate,
+                          actorId: selectedPerson.id,
+                          note: null,
+                        }),
+                      )
+                    }
                   />
                 )}
               />
