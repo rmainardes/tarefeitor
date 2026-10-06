@@ -77,8 +77,8 @@ export const periods: PeriodMeta[] = [
   { key: "anytime", label: "Livre", window: "a qualquer hora" },
 ];
 
-const EVEREST = "/tasks/guardar-o-everest.jpg";
-const PINGO = "/tasks/passear-com-o-pingo.jpg";
+const EVEREST = "/guardar-o-everest.png";
+const PINGO = "/pingo.jpeg";
 
 export const tasks: Task[] = [
   // ---------------- Pedro ----------------
