@@ -45,11 +45,15 @@ export function usePanelChrome() {
   const [night, setNight] = useState(() => isNightHour());
   const [now, setNow] = useState(() => new Date());
 
-  // lê as preferências salvas só depois de montar (SSR não tem window/localStorage)
+  // Lê as preferências salvas só depois de montar (SSR não tem window/localStorage).
+  // Leitura única de um valor client-only para evitar divergência de hidratação —
+  // não é o padrão de cascata que a regra normalmente evita.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setPref(detectThemePref());
     setMode(detectMode());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // tema efetivo
   useEffect(() => {

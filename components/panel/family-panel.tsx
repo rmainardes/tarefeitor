@@ -28,6 +28,8 @@ interface FamilyPanelProps {
   initialSelected: PersonSlug;
   today: string;
   yesterday: string;
+  /** "Ontem" só aparece enquanto o prazo retroativo estiver aberto (seção 8.1). */
+  yesterdayAllowed: boolean;
   tasksToday: ScheduledTask[];
   tasksYesterday: ScheduledTask[];
 }
@@ -42,6 +44,7 @@ export const FamilyPanel = ({
   initialSelected,
   today,
   yesterday,
+  yesterdayAllowed,
   tasksToday,
   tasksYesterday,
 }: FamilyPanelProps) => {
@@ -51,6 +54,7 @@ export const FamilyPanel = ({
 
   const { pref: themePref, cycleTheme, mode, toggleMode, now } = usePanelChrome();
   const [day, setDay] = useState<PanelDay>("today");
+  const activeDay: PanelDay = yesterdayAllowed ? day : "today";
 
   const selectedPerson = people.find((person) => person.slug === selected) ?? people[0];
 
@@ -75,7 +79,7 @@ export const FamilyPanel = ({
     });
   };
 
-  const rows = day === "today" ? tasksToday : tasksYesterday;
+  const rows = activeDay === "today" ? tasksToday : tasksYesterday;
   const yesterdayPending = tasksYesterday.filter((row) => row.status === "pending").length;
 
   const weightTotal = rows.reduce((sum, row) => sum + row.task.weight, 0);
@@ -115,7 +119,7 @@ export const FamilyPanel = ({
         />
 
         <section
-          key={`${selected}-${day}`}
+          key={`${selected}-${activeDay}`}
           className="flex animate-rise-in flex-col gap-5 lg:col-span-7"
           aria-label={`Tarefas de ${selectedPerson.name}`}
         >
@@ -137,12 +141,13 @@ export const FamilyPanel = ({
               todayIso={today}
               yesterdayIso={yesterday}
               yesterdayPending={yesterdayPending}
+              yesterdayAllowed={yesterdayAllowed}
             />
           </div>
 
           {groups.length === 0 ? (
             <p className="t-body rounded-lg border-2 border-dashed border-border bg-card p-6 text-center text-muted-foreground">
-              Nenhuma tarefa devida {day === "today" ? "hoje" : "ontem"}.
+              Nenhuma tarefa devida {activeDay === "today" ? "hoje" : "ontem"}.
             </p>
           ) : (
             groups.map((group) => (

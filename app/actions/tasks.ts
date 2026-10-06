@@ -260,19 +260,3 @@ export async function coverTask(input: unknown): Promise<ActionResult> {
     return toInternalError(error);
   }
 }
-
-// Wrappers para uso direto em `<form action={...}>` (o Painel, T06, ainda não
-// tem como exibir o `ActionResult` de erro sem JS no cliente): a action de
-// formulário só precisa devolver `void`.
-
-export async function markDoneForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
-  await markDone({ taskId, dueDate, actorId });
-}
-
-export async function undoMarkForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
-  await undoMark({ taskId, dueDate, actorId });
-}
-
-export async function markMissedForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
-  await markMissed({ taskId, dueDate, actorId, note: null });
-}

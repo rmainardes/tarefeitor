@@ -17,6 +17,8 @@ interface DayTabsProps {
   yesterdayIso: string;
   /** Tarefas de ontem ainda sem marcação (o prazo retroativo segue aberto). */
   yesterdayPending: number;
+  /** "Ontem" só aparece enquanto o prazo retroativo estiver aberto (seção 8.1). */
+  yesterdayAllowed: boolean;
   className?: string;
 }
 
@@ -26,42 +28,54 @@ export const DayTabs = ({
   todayIso,
   yesterdayIso,
   yesterdayPending,
+  yesterdayAllowed,
   className,
-}: DayTabsProps) => (
-  <div className={cn("flex flex-col gap-2", className)}>
-    <div
-      role="tablist"
-      aria-label="Dia das tarefas"
-      className="flex gap-1 rounded-full border border-border bg-surface-2 p-1 shadow-soft"
-    >
-      <DayTab
-        active={value === "today"}
-        onClick={() => onChange("today")}
-        label="Hoje"
-        sub={shortDateLabel(todayIso)}
-      />
-      <DayTab
-        active={value === "yesterday"}
-        onClick={() => onChange("yesterday")}
-        label="Ontem"
-        sub={weekdayLabel(yesterdayIso).slice(0, 3)}
-        badge={yesterdayPending > 0 ? yesterdayPending : undefined}
-      />
-    </div>
-
-    {value === "yesterday" ? (
-      <p className="t-caption flex items-center gap-1.5 text-accent-strong">
-        <CalendarClock className="size-4 shrink-0" aria-hidden />
-        Dá para marcar ontem até 23h de {dayMonthLabel(todayIso)}.
-      </p>
-    ) : (
-      <p className="t-caption flex items-center gap-1.5 text-muted-foreground">
+}: DayTabsProps) => {
+  if (!yesterdayAllowed) {
+    return (
+      <p className={cn("t-caption flex items-center gap-1.5 text-muted-foreground", className)}>
         <Clock className="size-4 shrink-0" aria-hidden />
         {retroDeadlineLabel(todayIso)} para as tarefas de hoje.
       </p>
-    )}
-  </div>
-);
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-2", className)}>
+      <div
+        role="tablist"
+        aria-label="Dia das tarefas"
+        className="flex gap-1 rounded-full border border-border bg-surface-2 p-1 shadow-soft"
+      >
+        <DayTab
+          active={value === "today"}
+          onClick={() => onChange("today")}
+          label="Hoje"
+          sub={shortDateLabel(todayIso)}
+        />
+        <DayTab
+          active={value === "yesterday"}
+          onClick={() => onChange("yesterday")}
+          label="Ontem"
+          sub={weekdayLabel(yesterdayIso).slice(0, 3)}
+          badge={yesterdayPending > 0 ? yesterdayPending : undefined}
+        />
+      </div>
+
+      {value === "yesterday" ? (
+        <p className="t-caption flex items-center gap-1.5 text-accent-strong">
+          <CalendarClock className="size-4 shrink-0" aria-hidden />
+          Dá para marcar ontem até 23h de {dayMonthLabel(todayIso)}.
+        </p>
+      ) : (
+        <p className="t-caption flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="size-4 shrink-0" aria-hidden />
+          {retroDeadlineLabel(todayIso)} para as tarefas de hoje.
+        </p>
+      )}
+    </div>
+  );
+};
 
 const DayTab = ({
   active,

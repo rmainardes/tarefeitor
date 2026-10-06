@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Cópia de referência do export do Lovable (porte do layout, T2) — não faz parte do app.
+    "tarefeitor-lovable/**",
   ]),
 ]);
 
