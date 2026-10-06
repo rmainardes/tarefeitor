@@ -2,18 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  baselines,
-  examEves,
-  judgement,
-  occurrences,
-  people,
-  tasks,
-  TODAY,
-  YESTERDAY,
-} from "@/lib/panel/panel-seed";
+import { examEves, occurrences, tasks, TODAY, YESTERDAY } from "@/lib/panel/panel-seed";
 import { occurrenceKey, resolveDue } from "@/lib/panel/panel-schedule";
-import { computeBoardScores, type BoardScore } from "@/lib/panel/panel-scoring";
 import type { OccurrenceStatus, PersonSlug, Task } from "@/lib/panel/panel-types";
 
 export interface ScheduledTask {
@@ -42,8 +32,8 @@ for (const row of occurrences) {
 }
 
 /**
- * Estado do painel. No app real cada toque vira uma Server Action; aqui o
- * mesmo contrato é mantido: marca, desfaz e o placar recalcula na hora.
+ * Lista de tarefas ainda mock (T2c troca por `resolvePersonOccurrences`).
+ * O placar já vem do servidor (T2b) — por isso esse hook não o calcula mais.
  */
 export function useTaskBoard() {
   const [states, setStates] =
@@ -104,29 +94,5 @@ export function useTaskBoard() {
     [states, meta],
   );
 
-  const pendingJudgementByPerson = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const item of judgement) {
-      const person = item.kind === "extra" ? item.authorSlug : item.accusedSlug;
-      if (!person) continue;
-      counts[person] = (counts[person] ?? 0) + 1;
-    }
-    return counts;
-  }, []);
-
-  const scores = useMemo<BoardScore[]>(() => {
-    const live = Object.entries(states).map(([key, status]) => ({
-      taskId: key.split("|")[0],
-      status,
-    }));
-    return computeBoardScores({
-      people,
-      tasks,
-      baselines,
-      live,
-      pendingJudgement: pendingJudgementByPerson,
-    });
-  }, [states, pendingJudgementByPerson]);
-
-  return { markDone, undo, markMissed, scheduleFor, scores };
+  return { markDone, undo, markMissed, scheduleFor };
 }

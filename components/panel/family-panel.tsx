@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
+import { selectPerson } from "@/app/actions/session";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
+import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
+import { useTaskBoard } from "@/components/panel/hooks/use-task-board";
 import { JudgementCard } from "@/components/panel/judgement-card";
 import { PanelActions } from "@/components/panel/panel-actions";
 import { PanelHeader } from "@/components/panel/panel-header";
@@ -11,26 +15,42 @@ import { PeriodSection } from "@/components/panel/period-section";
 import { PersonSwitcher } from "@/components/panel/person-switcher";
 import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
-import {
-  birthdays,
-  people,
-  periods,
-  TODAY,
-  YESTERDAY,
-} from "@/lib/panel/panel-seed";
-import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
-import { useSelectedPerson } from "@/components/panel/hooks/use-selected-person";
-import { useTaskBoard } from "@/components/panel/hooks/use-task-board";
+import { birthdays, periods, TODAY, YESTERDAY } from "@/lib/panel/panel-seed";
+import type { BoardScore } from "@/lib/panel/panel-scoring";
+import type { Person, PersonSlug } from "@/lib/panel/panel-types";
+
+interface FamilyPanelProps {
+  /** Placar e seletor já vêm do servidor (T2b). A lista de tarefas ainda é mock (T2c). */
+  people: Person[];
+  scores: BoardScore[];
+  /** Pessoa do cookie real `selected_person`, resolvida no servidor. */
+  initialSelected: PersonSlug;
+}
 
 /**
- * Painel (T06): placar, seletor de pessoa com cookie, lista de hoje e de
- * ontem e marcação por toque. Regras nas seções 8.1 e 9 do plano.
+ * Painel (T06, migrado em T2b): placar e seletor com dados reais; lista de
+ * hoje/ontem e marcação por toque seguem mock até a T2c/T2d.
  */
-export const FamilyPanel = () => {
-  const { selected, select, selectedPerson } = useSelectedPerson();
-  const { markDone, undo, markMissed, scheduleFor, scores } = useTaskBoard();
+export const FamilyPanel = ({ people, scores, initialSelected }: FamilyPanelProps) => {
+  const [selected, setSelected] = useState<PersonSlug>(initialSelected);
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  const { markDone, undo, markMissed, scheduleFor } = useTaskBoard();
   const { pref: themePref, cycleTheme, mode, toggleMode, now } = usePanelChrome();
   const [day, setDay] = useState<PanelDay>("today");
+
+  const selectedPerson = people.find((person) => person.slug === selected) ?? people[0];
+
+  const handleSelect = (slug: PersonSlug) => {
+    setSelected(slug);
+    const person = people.find((candidate) => candidate.slug === slug);
+    if (!person) return;
+    startTransition(async () => {
+      await selectPerson(person.id);
+      router.refresh();
+    });
+  };
 
   const isoDate = day === "today" ? TODAY : YESTERDAY;
   const rows = scheduleFor(selected, isoDate);
@@ -69,7 +89,7 @@ export const FamilyPanel = () => {
 
         <PersonSwitcher
           selected={selected}
-          onSelect={select}
+          onSelect={handleSelect}
           people={people}
           className="lg:col-span-12"
         />
