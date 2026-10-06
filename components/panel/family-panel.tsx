@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
 import { markDone, markMissed, undoMark } from "@/app/actions/tasks";
+import { AgendaStrip } from "@/components/panel/agenda-strip";
 import { CoverDialog } from "@/components/panel/actions/cover-dialog";
 import { ExtraDialog } from "@/components/panel/actions/extra-dialog";
 import { NewTaskDialog } from "@/components/panel/actions/new-task-dialog";
@@ -22,7 +23,13 @@ import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
 import { birthdays, periods } from "@/lib/panel/panel-seed";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { JudgementItemView, Person, PersonSlug, ScheduledTask } from "@/lib/panel/panel-types";
+import type {
+  AgendaItemView,
+  JudgementItemView,
+  Person,
+  PersonSlug,
+  ScheduledTask,
+} from "@/lib/panel/panel-types";
 import type { ActionResult } from "@/lib/validation";
 
 interface FamilyPanelProps {
@@ -32,11 +39,15 @@ interface FamilyPanelProps {
   initialSelected: PersonSlug;
   today: string;
   yesterday: string;
+  tomorrow: string;
   /** "Ontem" só aparece enquanto o prazo retroativo estiver aberto (seção 8.1). */
   yesterdayAllowed: boolean;
   tasksToday: ScheduledTask[];
   tasksYesterday: ScheduledTask[];
   judgements: JudgementItemView[];
+  agenda: AgendaItemView[];
+  /** `true` quando a leitura de alguma agenda real falhou (seção 7.5). */
+  agendaStale: boolean;
 }
 
 /**
@@ -49,10 +60,13 @@ export const FamilyPanel = ({
   initialSelected,
   today,
   yesterday,
+  tomorrow,
   yesterdayAllowed,
   tasksToday,
   tasksYesterday,
   judgements,
+  agenda,
+  agendaStale,
 }: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
   const [openAction, setOpenAction] = useState<PanelActionKey | null>(null);
@@ -200,6 +214,7 @@ export const FamilyPanel = ({
         </section>
 
         <aside className="flex flex-col gap-5 lg:col-span-5">
+          <AgendaStrip items={agenda} todayIso={today} tomorrowIso={tomorrow} stale={agendaStale} />
           <BirthdayStrip birthdays={birthdays} todayIso={today} />
           <JudgementCard items={judgements} />
           <PanelActions variant="rail" onAction={setOpenAction} className="hidden lg:flex" />

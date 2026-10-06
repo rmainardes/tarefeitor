@@ -105,6 +105,18 @@ export interface JudgementItemView {
   votesNeeded: number;
 }
 
+/** Evento de agenda real (iCal) de Pedro ou Rodrigo, já em dia (seção 7.5). */
+export interface AgendaItemView {
+  id: string;
+  personSlug: PersonSlug;
+  personName: string;
+  title: string;
+  dateIso: string;
+  /** `null` quando `allDay`. */
+  timeLabel: string | null;
+  allDay: boolean;
+}
+
 export interface Birthday {
   id: string;
   name: string;

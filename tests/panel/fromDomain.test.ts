@@ -20,6 +20,8 @@ const pedro: PersonRecord = {
   color: "#2f6bff",
   photoPath: "/people/Pedro.jpeg",
   photoFocus: "50% 25%",
+  icalUrl: null,
+  examKeywords: [],
 };
 
 const vania: PersonRecord = {
@@ -30,6 +32,8 @@ const vania: PersonRecord = {
   color: "#ff4d7e",
   photoPath: "/people/Vania.jpeg",
   photoFocus: "50% 50%",
+  icalUrl: null,
+  examKeywords: [],
 };
 
 describe("personToPanel", () => {

@@ -11,13 +11,21 @@
  *   - `BoardScore.pendingJudgement` (por pessoa): julgamento ainda não atribui
  *     item a pessoa (seção 7.3, entra na T11); só existe a contagem geral.
  */
+import type { AgendaEvent } from "@/lib/domain/calendar";
 import type { ResolvedTask, TaskListItem } from "@/lib/data/occurrenceResolution";
 import type { PersonRecord } from "@/lib/data/people";
 import type { ScoreboardEntry } from "@/lib/data/scoreboard";
 import type { PendingJudgmentItem } from "@/lib/data/judgment";
 import { dayMonthLabel } from "@/lib/panel/panel-schedule";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { JudgementItemView, Person, PersonSlug, ScheduledTask, Task } from "@/lib/panel/panel-types";
+import type {
+  AgendaItemView,
+  JudgementItemView,
+  Person,
+  PersonSlug,
+  ScheduledTask,
+  Task,
+} from "@/lib/panel/panel-types";
 
 const PERSON_SLUGS: readonly PersonSlug[] = ["pedro", "vania", "rodrigo"];
 
@@ -92,6 +100,19 @@ export function scoreboardToBoardScores(entries: readonly ScoreboardEntry[]): Bo
       isLeader: entry.isLeader,
       pendingJudgement: 0,
     }));
+}
+
+/** Evento da agenda real de `person`, já no formato do painel (seção 7.5). */
+export function agendaEventToView(event: AgendaEvent, person: PersonRecord): AgendaItemView {
+  return {
+    id: `${person.id}-${event.uid}-${event.dateIso}`,
+    personSlug: toPersonSlug(person.slug),
+    personName: person.name,
+    title: event.title,
+    dateIso: event.dateIso,
+    timeLabel: event.timeLabel,
+    allDay: event.allDay,
+  };
 }
 
 const VOTES_NEEDED: Record<PendingJudgmentItem["kind"], number> = {
