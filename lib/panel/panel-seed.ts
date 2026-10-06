@@ -1,0 +1,538 @@
+/**
+ * Dados do painel — recorte da seção 5 do plano (seed).
+ * Servem apenas para o visual: no app real vêm do banco via servidor.
+ *
+ * As fotos são espaços reservados (`/people/<slug>.jpg`); enquanto o arquivo
+ * não existe, o avatar mostra o monograma na cor da pessoa.
+ */
+import {
+  Backpack,
+  Banknote,
+  BedDouble,
+  BookOpenCheck,
+  Building2,
+  Croissant,
+  Dog,
+  Droplets,
+  Dumbbell,
+  Eraser,
+  Hand,
+  Mountain,
+  NotebookPen,
+  PenLine,
+  Shirt,
+  Soup,
+  Sparkles,
+  Trash2,
+  UtensilsCrossed,
+  Waves,
+  CookingPot,
+} from "lucide-react";
+
+import { addDays, dayMonthLabel, toIsoDate } from "@/lib/panel/panel-schedule";
+import type {
+  Birthday,
+  JudgementItem,
+  MonthBaseline,
+  OccSeed,
+  Person,
+  PeriodMeta,
+  Task,
+} from "@/lib/panel/panel-types";
+
+export const TODAY = toIsoDate();
+export const YESTERDAY = addDays(TODAY, -1);
+
+export const people: Person[] = [
+  {
+    id: 1,
+    slug: "pedro",
+    name: "Pedro",
+    isAdult: false,
+    photoPath: "/people/Pedro.jpeg",
+    photoFocus: "50% 45%",
+  },
+  {
+    id: 2,
+    slug: "vania",
+    name: "Vania",
+    isAdult: true,
+    photoPath: "/people/Vania.jpeg",
+    photoFocus: "50% 50%",
+  },
+  {
+    id: 3,
+    slug: "rodrigo",
+    name: "Rodrigo",
+    isAdult: true,
+    photoPath: "/people/Rodrigo.jpeg",
+    photoFocus: "50% 45%",
+  },
+];
+
+export const periods: PeriodMeta[] = [
+  { key: "morning", label: "Manhã", window: "até o meio-dia" },
+  { key: "afternoon", label: "Tarde", window: "até as 18h" },
+  { key: "evening", label: "Noite", window: "até dormir" },
+  { key: "anytime", label: "Livre", window: "a qualquer hora" },
+];
+
+const EVEREST = "/tasks/guardar-o-everest.jpg";
+const PINGO = "/tasks/passear-com-o-pingo.jpg";
+
+export const tasks: Task[] = [
+  // ---------------- Pedro ----------------
+  {
+    id: "pedro-bed",
+    personSlug: "pedro",
+    title: "Arrumar a cama",
+    icon: BedDouble,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-mesa-cafe",
+    personSlug: "pedro",
+    title: "Arrumar a mesa do café",
+    icon: UtensilsCrossed,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-tirar-cafe",
+    personSlug: "pedro",
+    title: "Tirar a mesa do café",
+    icon: Eraser,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-agenda",
+    personSlug: "pedro",
+    title: "Atualizar a agenda",
+    icon: NotebookPen,
+    period: "afternoon",
+    weight: 1,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "pedro-kumon",
+    personSlug: "pedro",
+    title: "Tarefas + Kumon",
+    icon: BookOpenCheck,
+    period: "afternoon",
+    weight: 3,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "pedro-toalhas",
+    personSlug: "pedro",
+    title: "Lavar e estender as toalhas",
+    icon: Waves,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [2, 5],
+  },
+  {
+    id: "pedro-pingo",
+    personSlug: "pedro",
+    title: "Passear com o Pingo",
+    icon: Dog,
+    image: PINGO,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [1, 3, 5],
+  },
+  {
+    id: "pedro-everest",
+    personSlug: "pedro",
+    title: "Guardar o Everest",
+    icon: Mountain,
+    image: EVEREST,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-louca",
+    personSlug: "pedro",
+    title: "Guardar a louça",
+    icon: Soup,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-cinco",
+    personSlug: "pedro",
+    title: "Guardar 5 coisas",
+    icon: Hand,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-atividade",
+    personSlug: "pedro",
+    title: "Atividade física (40 min ou mais)",
+    icon: Dumbbell,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "pedro-mesa-jantar",
+    personSlug: "pedro",
+    title: "Arrumar a mesa do jantar",
+    icon: UtensilsCrossed,
+    period: "evening",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-tirar-jantar",
+    personSlug: "pedro",
+    title: "Tirar a mesa do jantar",
+    icon: Eraser,
+    period: "evening",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-mochila",
+    personSlug: "pedro",
+    title: "Arrumar a mochila",
+    icon: Backpack,
+    period: "evening",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "pedro-estudo",
+    personSlug: "pedro",
+    title: "Estudar 40 min (véspera de prova)",
+    icon: PenLine,
+    period: "anytime",
+    weight: 2,
+    kind: "exam_eve",
+  },
+
+  // ---------------- Vania ----------------
+  {
+    id: "vania-bed",
+    personSlug: "vania",
+    title: "Arrumar a cama",
+    icon: BedDouble,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "vania-cozinhar",
+    personSlug: "vania",
+    title: "Cozinhar",
+    icon: CookingPot,
+    period: "anytime",
+    weight: 3,
+    kind: "daily",
+  },
+  {
+    id: "vania-roupa",
+    personSlug: "vania",
+    title: "Roupa",
+    icon: Shirt,
+    period: "anytime",
+    weight: 2,
+    kind: "daily",
+  },
+  {
+    id: "vania-everest",
+    personSlug: "vania",
+    title: "Guardar o Everest",
+    icon: Mountain,
+    image: EVEREST,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "vania-cinco",
+    personSlug: "vania",
+    title: "Guardar 5 coisas",
+    icon: Hand,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "vania-atividade",
+    personSlug: "vania",
+    title: "Atividade física (40 min ou mais)",
+    icon: Dumbbell,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "vania-contas",
+    personSlug: "vania",
+    title: "Pagar as contas",
+    icon: Banknote,
+    period: "anytime",
+    weight: 2,
+    kind: "monthly",
+    monthDay: 1,
+    leadDays: 3,
+  },
+
+  // ---------------- Rodrigo ----------------
+  {
+    id: "rodrigo-bed",
+    personSlug: "rodrigo",
+    title: "Arrumar a cama",
+    icon: BedDouble,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "rodrigo-pao",
+    personSlug: "rodrigo",
+    title: "Comprar pão",
+    icon: Croissant,
+    period: "morning",
+    weight: 1,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "rodrigo-atividade",
+    personSlug: "rodrigo",
+    title: "Atividade física (40 min ou mais)",
+    icon: Dumbbell,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [1, 2, 3, 4, 5],
+  },
+  {
+    id: "rodrigo-lixo",
+    personSlug: "rodrigo",
+    title: "Tirar o lixo",
+    icon: Trash2,
+    period: "anytime",
+    weight: 1,
+    kind: "weekly",
+    weekdays: [2, 6],
+  },
+  {
+    id: "rodrigo-pingo",
+    personSlug: "rodrigo",
+    title: "Passear com o Pingo",
+    icon: Dog,
+    image: PINGO,
+    period: "anytime",
+    weight: 2,
+    kind: "weekly",
+    weekdays: [2, 4, 6, 7],
+  },
+  {
+    id: "rodrigo-everest",
+    personSlug: "rodrigo",
+    title: "Guardar o Everest",
+    icon: Mountain,
+    image: EVEREST,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "rodrigo-cinco",
+    personSlug: "rodrigo",
+    title: "Guardar 5 coisas",
+    icon: Hand,
+    period: "anytime",
+    weight: 1,
+    kind: "daily",
+  },
+  {
+    id: "rodrigo-louca",
+    personSlug: "rodrigo",
+    title: "Louça do dia",
+    icon: Droplets,
+    period: "evening",
+    weight: 2,
+    kind: "daily",
+  },
+  {
+    id: "rodrigo-pia",
+    personSlug: "rodrigo",
+    title: "Limpar a pia e o fogão",
+    icon: Sparkles,
+    period: "evening",
+    weight: 2,
+    kind: "daily",
+  },
+  {
+    id: "rodrigo-condominio",
+    personSlug: "rodrigo",
+    title: "Pagar o condomínio",
+    icon: Building2,
+    period: "anytime",
+    weight: 2,
+    kind: "monthly",
+    monthDay: 12,
+    leadDays: 3,
+  },
+];
+
+/** Acumulado do mês de outubro até ontem. */
+export const baselines: Record<string, MonthBaseline> = {
+  pedro: { doneWeight: 240, missedWeight: 44, bonus: 4, penalty: 2, streak: 5 },
+  vania: {
+    doneWeight: 292,
+    missedWeight: 18,
+    bonus: 5,
+    penalty: 0,
+    streak: 12,
+  },
+  rodrigo: {
+    doneWeight: 268,
+    missedWeight: 30,
+    bonus: 3,
+    penalty: 4,
+    streak: 3,
+  },
+};
+
+/** Ocorrências já registradas (hoje e ontem). */
+export const occurrences: OccSeed[] = [
+  // ---- hoje · Pedro
+  { taskId: "pedro-bed", dayOffset: 0, status: "done" },
+  { taskId: "pedro-mesa-cafe", dayOffset: 0, status: "done" },
+  { taskId: "pedro-louca", dayOffset: 0, status: "done" },
+  {
+    taskId: "pedro-everest",
+    dayOffset: 0,
+    status: "covered",
+    doneBy: "vania",
+    note: "Fiz para o Pedro",
+  },
+  {
+    taskId: "pedro-atividade",
+    dayOffset: 0,
+    status: "missed",
+    note: "Não foi",
+  },
+  {
+    taskId: "pedro-mochila",
+    dayOffset: 0,
+    status: "excused",
+    note: "Folga combinada em casa",
+  },
+
+  // ---- hoje · Vania
+  { taskId: "vania-bed", dayOffset: 0, status: "done" },
+  { taskId: "vania-cozinhar", dayOffset: 0, status: "done" },
+  { taskId: "vania-roupa", dayOffset: 0, status: "done" },
+  { taskId: "vania-everest", dayOffset: 0, status: "done" },
+  { taskId: "vania-atividade", dayOffset: 0, status: "done" },
+
+  // ---- hoje · Rodrigo
+  { taskId: "rodrigo-bed", dayOffset: 0, status: "done" },
+  { taskId: "rodrigo-pao", dayOffset: 0, status: "done" },
+  { taskId: "rodrigo-atividade", dayOffset: 0, status: "done" },
+  { taskId: "rodrigo-lixo", dayOffset: 0, status: "done" },
+
+  // ---- ontem · Pedro
+  { taskId: "pedro-bed", dayOffset: -1, status: "done" },
+  { taskId: "pedro-mesa-cafe", dayOffset: -1, status: "done" },
+  { taskId: "pedro-tirar-cafe", dayOffset: -1, status: "done" },
+  { taskId: "pedro-agenda", dayOffset: -1, status: "done" },
+  { taskId: "pedro-kumon", dayOffset: -1, status: "done" },
+  { taskId: "pedro-everest", dayOffset: -1, status: "done" },
+  {
+    taskId: "pedro-louca",
+    dayOffset: -1,
+    status: "missed",
+    note: "Esqueceu de verdade",
+  },
+  { taskId: "pedro-cinco", dayOffset: -1, status: "done" },
+  { taskId: "pedro-atividade", dayOffset: -1, status: "done" },
+  { taskId: "pedro-pingo", dayOffset: -1, status: "done" },
+  { taskId: "pedro-mesa-jantar", dayOffset: -1, status: "done" },
+  { taskId: "pedro-tirar-jantar", dayOffset: -1, status: "done" },
+  { taskId: "pedro-mochila", dayOffset: -1, status: "done" },
+
+  // ---- ontem · Vania
+  { taskId: "vania-bed", dayOffset: -1, status: "done" },
+  { taskId: "vania-cozinhar", dayOffset: -1, status: "done" },
+  { taskId: "vania-roupa", dayOffset: -1, status: "done" },
+  { taskId: "vania-everest", dayOffset: -1, status: "done" },
+  { taskId: "vania-cinco", dayOffset: -1, status: "done" },
+  { taskId: "vania-atividade", dayOffset: -1, status: "done" },
+
+  // ---- ontem · Rodrigo
+  { taskId: "rodrigo-bed", dayOffset: -1, status: "done" },
+  { taskId: "rodrigo-pao", dayOffset: -1, status: "done" },
+  { taskId: "rodrigo-atividade", dayOffset: -1, status: "done" },
+  { taskId: "rodrigo-louca", dayOffset: -1, status: "done" },
+  { taskId: "rodrigo-pia", dayOffset: -1, status: "done" },
+  {
+    taskId: "rodrigo-cinco",
+    dayOffset: -1,
+    status: "missed",
+    note: "Sobrou tudo no chão",
+  },
+];
+
+export const judgement: JudgementItem[] = [
+  {
+    id: "extra-vania-1",
+    kind: "extra",
+    authorSlug: "vania",
+    description: "Cozinhou para a semana inteira e ainda congelou marmitas",
+    whenLabel: `feito em ${dayMonthLabel(addDays(TODAY, -2))}`,
+    votesIn: 1,
+    votesNeeded: 2,
+  },
+  {
+    id: "extra-pedro-1",
+    kind: "extra",
+    authorSlug: "pedro",
+    description: "Lavou o carro sem ninguém pedir",
+    whenLabel: `feito em ${dayMonthLabel(addDays(TODAY, -1))}`,
+    votesIn: 0,
+    votesNeeded: 2,
+  },
+  {
+    id: "report-pedro-1",
+    kind: "report",
+    authorSlug: "pedro",
+    accusedSlug: "rodrigo",
+    description: "Não tirou o lixo direito: deixou dois sacos no corredor",
+    defense: "Eu tirei! Só não consegui fechar a tampa.",
+    whenLabel: `aconteceu em ${dayMonthLabel(addDays(TODAY, -1))}`,
+    votesIn: 1,
+    votesNeeded: 3,
+  },
+];
+
+export const birthdays: Birthday[] = [
+  { id: "b1", name: "Tio Vanderlei", day: 6, month: 10 },
+  { id: "b2", name: "Nonna", day: 12, month: 10 },
+  { id: "b3", name: "Tia Arlete", day: 21, month: 10 },
+  { id: "b4", name: "Pingo", day: 28, month: 10 },
+];
+
+/** Nenhuma prova do Pedro nos próximos dias. */
+export const examEves: ReadonlySet<string> = new Set<string>();

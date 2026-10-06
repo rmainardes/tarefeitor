@@ -1,20 +1,403 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --background: 220 28% 96.5%;
+  --foreground: 222 30% 12%;
 
   --color-pedro: #2563eb;
   --color-vania: #d6336c;
   --color-rodrigo: #0d9488;
+
+  /* ---------- painel (porte do layout Lovable) ---------- */
+  --surface: 0 0% 100%;
+  --surface-2: 220 24% 93%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 30% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 30% 12%;
+
+  --muted: 220 24% 93%;
+  --muted-foreground: 220 12% 44%;
+
+  --border: 220 16% 88%;
+  --border-strong: 220 14% 58%;
+  --input: 220 16% 88%;
+
+  --primary: 258 78% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 24% 93%;
+  --secondary-foreground: 222 30% 12%;
+
+  --accent: 38 92% 50%;
+  --accent-foreground: 30 90% 18%;
+  --accent-strong: 32 90% 34%;
+
+  --destructive: 4 72% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 258 78% 52%;
+
+  --state-done: 152 62% 29%;
+  --state-missed: 4 72% 44%;
+  --state-covered: 285 52% 42%;
+  --state-excused: 215 14% 44%;
+  --state-foreground: 0 0% 100%;
+
+  --person-pedro: 217 91% 52%;
+  --person-vania: 342 82% 49%;
+  --person-rodrigo: 174 88% 26%;
+  --person-foreground: 0 0% 100%;
+  --person-pedro-text: 217 91% 42%;
+  --person-vania-text: 342 82% 38%;
+  --person-rodrigo-text: 174 88% 20%;
+
+  --person-active: var(--person-pedro);
+  --person-active-text: var(--person-pedro-text);
+
+  --radius: 1.75rem;
+  --tap-min: 44px;
+
+  --type-display: clamp(28px, 6.4vw, 38px);
+  --type-headline: clamp(18px, 4.6vw, 26px);
+  --type-title: clamp(17px, 4.2vw, 20px);
+  --type-body: clamp(15px, 4vw, 17px);
+  --type-label: clamp(13px, 3.4vw, 15px);
+  --type-caption: clamp(11.5px, 3.1vw, 13px);
+  --type-score: clamp(34px, 8.5vw, 44px);
+
+  --shadow-sm:
+    0 1px 2px hsl(222 40% 12% / 0.06), 0 1px 1px hsl(222 40% 12% / 0.04);
+  --shadow-md:
+    0 4px 14px hsl(222 40% 12% / 0.1), 0 2px 4px hsl(222 40% 12% / 0.06);
+  --shadow-lg: 0 16px 40px hsl(222 40% 12% / 0.16);
+}
+
+.dark {
+  --background: 222 28% 8%;
+  --foreground: 220 30% 96%;
+
+  --surface: 222 26% 12%;
+  --surface-2: 222 24% 16%;
+
+  --card: 222 26% 12%;
+  --card-foreground: 220 30% 96%;
+  --popover: 222 26% 12%;
+  --popover-foreground: 220 30% 96%;
+
+  --muted: 222 24% 16%;
+  --muted-foreground: 220 14% 68%;
+
+  --border: 222 20% 24%;
+  --border-strong: 222 14% 44%;
+  --input: 222 20% 24%;
+
+  --primary: 258 90% 72%;
+  --primary-foreground: 258 60% 12%;
+  --secondary: 222 24% 16%;
+  --secondary-foreground: 220 30% 96%;
+
+  --accent: 38 92% 58%;
+  --accent-foreground: 30 90% 10%;
+  --accent-strong: 38 92% 58%;
+
+  --destructive: 4 68% 62%;
+  --destructive-foreground: 4 60% 10%;
+  --ring: 258 90% 72%;
+
+  --state-done: 152 55% 62%;
+  --state-missed: 4 78% 68%;
+  --state-covered: 285 60% 70%;
+  --state-excused: 215 16% 68%;
+  --state-foreground: 222 30% 10%;
+
+  --person-pedro-text: 217 95% 72%;
+  --person-vania-text: 342 90% 72%;
+  --person-rodrigo-text: 174 70% 62%;
+
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.5);
+  --shadow-md: 0 6px 18px hsl(0 0% 0% / 0.55);
+  --shadow-lg: 0 20px 48px hsl(0 0% 0% / 0.65);
+}
+
+/* Modo parede: painel 24/7 no notebook, legível a ~3 m */
+[data-mode="wall"] {
+  --type-display: clamp(40px, 3.4vw, 56px);
+  --type-headline: clamp(30px, 2.4vw, 40px);
+  --type-title: clamp(22px, 1.7vw, 28px);
+  --type-body: clamp(18px, 1.4vw, 22px);
+  --type-label: clamp(16px, 1.2vw, 19px);
+  --type-caption: clamp(14px, 1.05vw, 16px);
+  --type-score: clamp(56px, 4.8vw, 88px);
+  --tap-min: 56px;
+}
+
+/* Escopo de pessoa: define os tokens da pessoa em foco */
+[data-person="pedro"] {
+  --person-active: var(--person-pedro);
+  --person-active-text: var(--person-pedro-text);
+}
+[data-person="vania"] {
+  --person-active: var(--person-vania);
+  --person-active-text: var(--person-vania-text);
+}
+[data-person="rodrigo"] {
+  --person-active: var(--person-rodrigo);
+  --person-active-text: var(--person-rodrigo-text);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
   --color-pedro: var(--color-pedro);
   --color-vania: var(--color-vania);
   --color-rodrigo: var(--color-rodrigo);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-numeric: var(--font-numeric);
+
+  --color-surface: hsl(var(--surface));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-strong: hsl(var(--accent-strong));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-state-done: hsl(var(--state-done));
+  --color-state-missed: hsl(var(--state-missed));
+  --color-state-covered: hsl(var(--state-covered));
+  --color-state-excused: hsl(var(--state-excused));
+  --color-state-foreground: hsl(var(--state-foreground));
+
+  --color-person-pedro: hsl(var(--person-pedro));
+  --color-person-vania: hsl(var(--person-vania));
+  --color-person-rodrigo: hsl(var(--person-rodrigo));
+  --color-person-pedro-text: hsl(var(--person-pedro-text));
+  --color-person-vania-text: hsl(var(--person-vania-text));
+  --color-person-rodrigo-text: hsl(var(--person-rodrigo-text));
+  --color-person-active: hsl(var(--person-active));
+  --color-person-active-text: hsl(var(--person-active-text));
+  --color-person-foreground: hsl(var(--person-foreground));
+
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: var(--radius);
+  --radius-xl: 36px;
+  --radius-2xl: 44px;
+
+  --shadow-soft: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-float: var(--shadow-lg);
+
+  --animate-pop-in: pop-in 220ms cubic-bezier(0.2, 0, 0, 1.18);
+  --animate-rise-in: rise-in 260ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-stamp-in: stamp-in 240ms cubic-bezier(0.2, 0, 0, 1.18);
+  --animate-breathe: breathe 2.6s ease-in-out infinite;
+  --animate-sheen: sheen 3.2s linear infinite;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: rotate(-2deg) scale(1.25);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+@keyframes sheen {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+
+@layer components {
+  .t-display {
+    font-family: var(--font-display);
+    font-size: var(--type-display);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .t-headline {
+    font-family: var(--font-display);
+    font-size: var(--type-headline);
+    line-height: 1.14;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  .t-title {
+    font-family: var(--font-display);
+    font-size: var(--type-title);
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  .t-body {
+    font-size: var(--type-body);
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .t-label {
+    font-size: var(--type-label);
+    line-height: 1.35;
+    font-weight: 700;
+  }
+
+  .t-caption {
+    font-size: var(--type-caption);
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  .t-score {
+    font-family: var(--font-display);
+    font-size: var(--type-score);
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-numeric {
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tap {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+  }
+
+  .focus {
+    @apply outline-none focus-visible:ring-4 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .surface-card {
+    @apply rounded-lg border border-border bg-card shadow-soft;
+  }
+
+  .app-canvas {
+    background-image:
+      radial-gradient(
+        58% 38% at 10% -4%,
+        hsl(var(--person-pedro) / 0.12),
+        transparent 70%
+      ),
+      radial-gradient(
+        48% 32% at 50% -6%,
+        hsl(var(--person-vania) / 0.1),
+        transparent 70%
+      ),
+      radial-gradient(
+        54% 36% at 92% -4%,
+        hsl(var(--person-rodrigo) / 0.12),
+        transparent 70%
+      );
+  }
+
+  .rail {
+    @apply self-stretch rounded-full;
+  }
+
+  .rail-missed {
+    background-image: repeating-linear-gradient(
+      180deg,
+      hsl(var(--state-missed)) 0 6px,
+      transparent 6px 12px
+    );
+  }
+
+  .rail-excused {
+    background-image: repeating-linear-gradient(
+      180deg,
+      hsl(var(--state-excused)) 0 3px,
+      transparent 3px 8px
+    );
+  }
+
+  .hatch-missed {
+    background-image: repeating-linear-gradient(
+      135deg,
+      hsl(var(--state-missed) / 0.1) 0 6px,
+      transparent 6px 14px
+    );
+  }
+
+  .stamp {
+    transform: rotate(-4deg);
+    transform-origin: right center;
+  }
+
+  .ring-track {
+    stroke: currentColor;
+    opacity: 0.35;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

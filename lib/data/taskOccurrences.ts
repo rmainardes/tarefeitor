@@ -70,3 +70,21 @@ export async function deleteOccurrence(taskId: string, dueDate: ISODate): Promis
 
   if (error) throw mapDataError(error);
 }
+
+/** Nº de "Fiz para" feitos por `personId` no intervalo (seção 7.3: `favor_bonus`). */
+export async function countCoveredBy(
+  personId: number,
+  dateFrom: ISODate,
+  dateTo: ISODate,
+): Promise<number> {
+  const { count, error } = await getSupabaseAdmin()
+    .from("task_occurrences")
+    .select("task_id", { count: "exact", head: true })
+    .eq("status", "covered")
+    .eq("done_by", personId)
+    .gte("due_date", dateFrom)
+    .lte("due_date", dateTo);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}

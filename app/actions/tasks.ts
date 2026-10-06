@@ -1,9 +1,11 @@
 "use server";
 
 // Server Actions de tarefas (seção 10): markDone, undoMark, markMissed,
-// coverTask. Todas validam a entrada, verificam mês aberto e prazo, gravam e
-// registram em audit_log. Broadcast e revalidação de cache entram junto do
-// painel (T06), quando houver algo na tela para atualizar.
+// coverTask. Todas validam a entrada, verificam mês aberto e prazo, gravam,
+// registram em audit_log e revalidam o Painel. Broadcast (seção 8.4) fica
+// para a T10.
+
+import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
 import { canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
@@ -112,6 +114,7 @@ export async function markDone(input: unknown): Promise<ActionResult> {
       payload: { taskId, dueDate },
     });
 
+    revalidatePath("/");
     return actionOk(undefined);
   } catch (error) {
     return toInternalError(error);
@@ -147,6 +150,7 @@ export async function undoMark(input: unknown): Promise<ActionResult> {
       payload: { taskId, dueDate, previousStatus: occurrence.status },
     });
 
+    revalidatePath("/");
     return actionOk(undefined);
   } catch (error) {
     return toInternalError(error);
@@ -196,6 +200,7 @@ export async function markMissed(input: unknown): Promise<ActionResult> {
       payload: { taskId, dueDate, note: note ?? null },
     });
 
+    revalidatePath("/");
     return actionOk(undefined);
   } catch (error) {
     return toInternalError(error);
@@ -249,8 +254,25 @@ export async function coverTask(input: unknown): Promise<ActionResult> {
       payload: { taskId, dueDate },
     });
 
+    revalidatePath("/");
     return actionOk(undefined);
   } catch (error) {
     return toInternalError(error);
   }
+}
+
+// Wrappers para uso direto em `<form action={...}>` (o Painel, T06, ainda não
+// tem como exibir o `ActionResult` de erro sem JS no cliente): a action de
+// formulário só precisa devolver `void`.
+
+export async function markDoneForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
+  await markDone({ taskId, dueDate, actorId });
+}
+
+export async function undoMarkForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
+  await undoMark({ taskId, dueDate, actorId });
+}
+
+export async function markMissedForm(taskId: string, dueDate: ISODate, actorId: number): Promise<void> {
+  await markMissed({ taskId, dueDate, actorId, note: null });
 }

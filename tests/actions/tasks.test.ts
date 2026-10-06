@@ -8,7 +8,9 @@ const isMonthClosed = vi.fn();
 const getRetroDeadlineHour = vi.fn();
 const personExists = vi.fn();
 const recordAuditLog = vi.fn();
+const revalidatePath = vi.fn();
 
+vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/data/tasks", () => ({ findTaskOwner }));
 vi.mock("@/lib/data/taskOccurrences", () => ({
   findOccurrence,
@@ -45,6 +47,7 @@ describe("markDone", () => {
     const result = await markDone({ taskId: TASK_ID, dueDate: DUE_DATE, actorId: OWNER_ID });
 
     expect(result).toEqual({ ok: true, data: undefined });
+    expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(upsertOccurrence).toHaveBeenCalledWith({
       taskId: TASK_ID,
       dueDate: DUE_DATE,
@@ -117,6 +120,7 @@ describe("undoMark", () => {
     const result = await undoMark({ taskId: TASK_ID, dueDate: DUE_DATE, actorId: OWNER_ID });
 
     expect(result).toEqual({ ok: true, data: undefined });
+    expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(deleteOccurrence).toHaveBeenCalledWith(TASK_ID, DUE_DATE);
   });
 
@@ -172,6 +176,7 @@ describe("markMissed", () => {
     });
 
     expect(result).toEqual({ ok: true, data: undefined });
+    expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(upsertOccurrence).toHaveBeenCalledWith({
       taskId: TASK_ID,
       dueDate: "2000-01-01",
@@ -215,6 +220,7 @@ describe("coverTask", () => {
     const result = await coverTask({ taskId: TASK_ID, dueDate: DUE_DATE, actorId: OTHER_ID });
 
     expect(result).toEqual({ ok: true, data: undefined });
+    expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(upsertOccurrence).toHaveBeenCalledWith({
       taskId: TASK_ID,
       dueDate: DUE_DATE,
