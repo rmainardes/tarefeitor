@@ -8,24 +8,37 @@
 import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
-import { canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
+import { toISODate, canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
 import { isMonthClosed } from "@/lib/data/months";
 import { personExists } from "@/lib/data/people";
 import { getRetroDeadlineHour } from "@/lib/data/settings";
-import { findTaskOwner, type TaskOwnerRecord } from "@/lib/data/tasks";
+import {
+  findTaskOwner,
+  insertTask,
+  type NewTaskInput,
+  type TaskOwnerRecord,
+} from "@/lib/data/tasks";
 import {
   deleteOccurrence,
   findOccurrence,
   upsertOccurrence,
 } from "@/lib/data/taskOccurrences";
+import {
+  listCoverableTasks,
+  type CoverableTask,
+} from "@/lib/data/occurrenceResolution";
 import { MonthClosedError } from "@/lib/data/errors";
 import {
   actionError,
   actionOk,
   isISODate,
   isPersonId,
+  isTaskPeriod,
+  isTaskWeight,
   isUuid,
   isValidNote,
+  isValidTaskTitle,
+  isWeekdayList,
   type ActionResult,
 } from "@/lib/validation";
 
@@ -44,7 +57,7 @@ function validateTaskOccurrenceInput(
 }
 
 /** Erro inesperado do banco: loga tudo no servidor, expõe só um código genérico. */
-function toInternalError(error: unknown): ActionResult {
+function toInternalError<T = void>(error: unknown): ActionResult<T> {
   console.error("Erro inesperado em Server Action de tarefas:", error);
   if (error instanceof MonthClosedError) {
     return actionError("MONTH_CLOSED", "Esse mês já foi fechado.");
@@ -259,4 +272,71 @@ export async function coverTask(input: unknown): Promise<ActionResult> {
   } catch (error) {
     return toInternalError(error);
   }
+}
+
+interface CreateTaskInput {
+  personId: number;
+  title: string;
+  period: NewTaskInput["period"];
+  weight: 1 | 2 | 3;
+  kind: "daily" | "weekly";
+  weekdays: number[] | null;
+  createdBy: number;
+}
+
+function validateCreateTaskInput(input: unknown): input is CreateTaskInput {
+  if (typeof input !== "object" || input === null) return false;
+  const { personId, title, period, weight, kind, weekdays, createdBy } = input as Record<string, unknown>;
+  if (!isPersonId(personId) || !isPersonId(createdBy)) return false;
+  if (!isValidTaskTitle(title)) return false;
+  if (!isTaskPeriod(period)) return false;
+  if (!isTaskWeight(weight)) return false;
+  if (kind !== "daily" && kind !== "weekly") return false;
+  if (kind === "weekly" && !isWeekdayList(weekdays)) return false;
+  if (kind === "daily" && weekdays !== null) return false;
+  return true;
+}
+
+/** "Nova tarefa": recorrência diária ou semanal só (mensal/avulsa ficam para Configurações, T13). */
+export async function createTask(input: unknown): Promise<ActionResult<{ id: string }>> {
+  if (!validateCreateTaskInput(input)) {
+    return actionError("INVALID_INPUT", "Dados inválidos.");
+  }
+  const { personId, title, period, weight, kind, weekdays, createdBy } = input;
+
+  try {
+    if (!(await personExists(personId))) {
+      return actionError("PERSON_NOT_FOUND", "Pessoa não encontrada.");
+    }
+
+    const id = await insertTask({
+      personId,
+      title,
+      period,
+      weight,
+      kind,
+      weekdays: kind === "weekly" ? weekdays : null,
+      validFrom: toISODate(new Date()),
+      createdBy,
+    });
+
+    await recordAuditLog({
+      actorId: createdBy,
+      action: "createTask",
+      entity: "tasks",
+      entityId: id,
+      payload: { personId, title, period, weight, kind, weekdays },
+    });
+
+    revalidatePath("/");
+    return actionOk({ id });
+  } catch (error) {
+    return toInternalError(error);
+  }
+}
+
+/** Tarefas pendentes de hoje das outras pessoas, para o diálogo "Fiz para o/a X". */
+export async function getCoverableTasks(actorId: number): Promise<CoverableTask[]> {
+  if (!isPersonId(actorId)) return [];
+  return listCoverableTasks(actorId, toISODate(new Date()), new Date());
 }

@@ -14,8 +14,10 @@
 import type { ResolvedTask, TaskListItem } from "@/lib/data/occurrenceResolution";
 import type { PersonRecord } from "@/lib/data/people";
 import type { ScoreboardEntry } from "@/lib/data/scoreboard";
+import type { PendingJudgmentItem } from "@/lib/data/judgment";
+import { dayMonthLabel } from "@/lib/panel/panel-schedule";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { Person, PersonSlug, ScheduledTask, Task } from "@/lib/panel/panel-types";
+import type { JudgementItemView, Person, PersonSlug, ScheduledTask, Task } from "@/lib/panel/panel-types";
 
 const PERSON_SLUGS: readonly PersonSlug[] = ["pedro", "vania", "rodrigo"];
 
@@ -90,4 +92,36 @@ export function scoreboardToBoardScores(entries: readonly ScoreboardEntry[]): Bo
       isLeader: entry.isLeader,
       pendingJudgement: 0,
     }));
+}
+
+const VOTES_NEEDED: Record<PendingJudgmentItem["kind"], number> = {
+  extra: 2,
+  report: 3,
+};
+
+/**
+ * `peopleById` resolve autor/acusado para nome. `votesIn` fica em 0 — votar
+ * ainda não existe (T11); por isso tudo que está aqui conta como pendente.
+ */
+export function judgmentToView(
+  item: PendingJudgmentItem,
+  peopleById: ReadonlyMap<number, PersonRecord>,
+): JudgementItemView {
+  const author = peopleById.get(item.authorId);
+  const accused = item.accusedId !== null ? peopleById.get(item.accusedId) : undefined;
+
+  return {
+    id: item.id,
+    kind: item.kind,
+    authorName: author?.name ?? "alguém",
+    accusedName: accused?.name,
+    description: item.description,
+    defense: item.defense ?? undefined,
+    whenLabel:
+      item.kind === "extra"
+        ? `feito em ${dayMonthLabel(item.happenedOn)}`
+        : `aconteceu em ${dayMonthLabel(item.happenedOn)}`,
+    votesIn: 0,
+    votesNeeded: VOTES_NEEDED[item.kind],
+  };
 }

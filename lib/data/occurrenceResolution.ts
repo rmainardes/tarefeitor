@@ -14,6 +14,7 @@ import {
   type ResolvedOccurrenceState,
   type TaskPeriod,
 } from "../domain/recurrence";
+import { listPeople } from "./people";
 import { getRetroDeadlineHour } from "./settings";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
@@ -170,4 +171,43 @@ export async function resolvePersonOccurrences(
   }
 
   return result.sort((a, b) => a.task.sortOrder - b.task.sortOrder);
+}
+
+export interface CoverableTask {
+  taskId: string;
+  title: string;
+  icon: string;
+  period: TaskPeriod;
+  weight: number;
+  personId: number;
+  personName: string;
+  dueDate: ISODate;
+}
+
+/** Tarefas pendentes de hoje das outras pessoas, para "Fiz para o/a X" (seção 8.1). */
+export async function listCoverableTasks(excludingPersonId: number, today: ISODate, now: Date): Promise<CoverableTask[]> {
+  const people = (await listPeople()).filter((person) => person.id !== excludingPersonId);
+
+  const resolvedByPerson = await Promise.all(
+    people.map((person) => resolvePersonOccurrences(person.id, [today], now)),
+  );
+
+  const coverable: CoverableTask[] = [];
+  people.forEach((person, index) => {
+    for (const item of resolvedByPerson[index]) {
+      if (item.state.kind !== "pending") continue;
+      coverable.push({
+        taskId: item.task.id,
+        title: item.task.title,
+        icon: item.task.icon,
+        period: item.task.period,
+        weight: item.task.weight,
+        personId: person.id,
+        personName: person.name,
+        dueDate: item.dueDate,
+      });
+    }
+  });
+
+  return coverable;
 }

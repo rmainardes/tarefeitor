@@ -90,6 +90,21 @@ export interface JudgementItem {
   votesNeeded: number;
 }
 
+/** Extra/dedurada reais ainda sem voto (seção 7.3). Nomes já resolvidos pelo servidor. */
+export interface JudgementItemView {
+  id: string;
+  kind: "extra" | "report";
+  /** Extras: quem fez. Deduradas: quem dedurou. */
+  authorName: string;
+  /** Só nas deduradas. */
+  accusedName?: string;
+  description: string;
+  defense?: string;
+  whenLabel: string;
+  votesIn: number;
+  votesNeeded: number;
+}
+
 export interface Birthday {
   id: string;
   name: string;

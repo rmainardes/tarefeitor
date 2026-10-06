@@ -1,19 +1,19 @@
 import { Gavel, Hourglass, Sparkles, Swords } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { personName } from "@/lib/panel/panel-people";
-import { judgement } from "@/lib/panel/panel-seed";
+import type { JudgementItemView } from "@/lib/panel/panel-types";
 
 interface JudgementCardProps {
+  items: JudgementItemView[];
   className?: string;
 }
 
 /**
  * Extras e deduradas aguardando votos. Enquanto não são julgados, ficam
- * fora do total do placar (seção 7.3).
+ * fora do total do placar (seção 7.3). Votos entram na T11.
  */
-export const JudgementCard = ({ className }: JudgementCardProps) => {
-  const total = judgement.length;
+export const JudgementCard = ({ items, className }: JudgementCardProps) => {
+  const total = items.length;
 
   return (
     <section
@@ -32,14 +32,13 @@ export const JudgementCard = ({ className }: JudgementCardProps) => {
         Fora do total até a votação. O julgamento abre no último dia do mês.
       </p>
 
-      <ul className="mt-3 flex flex-col gap-2">
-        {judgement.map((item) => {
-          const targetSlug =
-            item.kind === "extra" ? item.authorSlug : item.accusedSlug;
-          return (
+      {total === 0 ? (
+        <p className="t-body mt-3 text-muted-foreground">Nada em julgamento este mês.</p>
+      ) : (
+        <ul className="mt-3 flex flex-col gap-2">
+          {items.map((item) => (
             <li
               key={item.id}
-              data-person={targetSlug}
               className="flex flex-col gap-1.5 rounded-md border border-border bg-surface-2/70 p-3"
             >
               <span className="flex flex-wrap items-center gap-2">
@@ -58,8 +57,8 @@ export const JudgementCard = ({ className }: JudgementCardProps) => {
                   )}
                   {item.kind === "extra" ? "extra" : "dedurada"}
                 </span>
-                <span className="t-label text-person-active-text">
-                  {personName(targetSlug)}
+                <span className="t-label">
+                  {item.kind === "extra" ? item.authorName : item.accusedName}
                 </span>
                 <span className="t-caption ml-auto text-muted-foreground">
                   {item.whenLabel}
@@ -69,7 +68,7 @@ export const JudgementCard = ({ className }: JudgementCardProps) => {
               <p className="t-body">{item.description}</p>
 
               {item.defense ? (
-                <p className="t-caption rounded-md border-l-4 border-person-active/50 bg-surface px-3 py-2 italic text-muted-foreground">
+                <p className="t-caption rounded-md border-l-4 border-primary/50 bg-surface px-3 py-2 italic text-muted-foreground">
                   “{item.defense}”
                 </p>
               ) : null}
@@ -84,16 +83,16 @@ export const JudgementCard = ({ className }: JudgementCardProps) => {
                       key={index}
                       className={cn(
                         "size-2 rounded-full",
-                        index < item.votesIn ? "bg-person-active" : "bg-border",
+                        index < item.votesIn ? "bg-primary" : "bg-border",
                       )}
                     />
                   ))}
                 </span>
               </span>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   );
 };

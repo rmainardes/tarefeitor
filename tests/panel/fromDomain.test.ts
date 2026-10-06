@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResolvedTask } from "@/lib/data/occurrenceResolution";
+import type { PendingJudgmentItem } from "@/lib/data/judgment";
 import type { PersonRecord } from "@/lib/data/people";
 import type { ScoreboardEntry } from "@/lib/data/scoreboard";
 import {
+  judgmentToView,
   personToPanel,
   resolvedTaskToScheduled,
   scoreboardToBoardScores,
@@ -165,5 +167,66 @@ describe("scoreboardToBoardScores", () => {
     expect(score.missedWeight).toBe(0);
     expect(score.bonus).toBe(0);
     expect(score.penalty).toBe(0);
+  });
+});
+
+describe("judgmentToView", () => {
+  const peopleById = new Map([
+    [pedro.id, pedro],
+    [vania.id, vania],
+  ]);
+
+  it("resolve o autor de um extra e marca 2 votos necessários", () => {
+    const extra: PendingJudgmentItem = {
+      id: "e1",
+      kind: "extra",
+      authorId: vania.id,
+      accusedId: null,
+      description: "cozinhou para a semana inteira",
+      defense: null,
+      happenedOn: "2026-10-04",
+    };
+
+    const view = judgmentToView(extra, peopleById);
+
+    expect(view.authorName).toBe("Vania");
+    expect(view.accusedName).toBeUndefined();
+    expect(view.votesNeeded).toBe(2);
+    expect(view.votesIn).toBe(0);
+    expect(view.whenLabel).toContain("feito em");
+  });
+
+  it("resolve autor e acusado de uma dedurada e marca 3 votos necessários", () => {
+    const report: PendingJudgmentItem = {
+      id: "r1",
+      kind: "report",
+      authorId: pedro.id,
+      accusedId: vania.id,
+      description: "não tirou o lixo direito",
+      defense: "eu tirei!",
+      happenedOn: "2026-10-05",
+    };
+
+    const view = judgmentToView(report, peopleById);
+
+    expect(view.authorName).toBe("Pedro");
+    expect(view.accusedName).toBe("Vania");
+    expect(view.defense).toBe("eu tirei!");
+    expect(view.votesNeeded).toBe(3);
+    expect(view.whenLabel).toContain("aconteceu em");
+  });
+
+  it("usa um nome de reserva quando a pessoa não está no mapa", () => {
+    const extra: PendingJudgmentItem = {
+      id: "e2",
+      kind: "extra",
+      authorId: 999,
+      accusedId: null,
+      description: "algo",
+      defense: null,
+      happenedOn: "2026-10-04",
+    };
+
+    expect(judgmentToView(extra, peopleById).authorName).toBe("alguém");
   });
 });

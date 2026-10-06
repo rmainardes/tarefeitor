@@ -6,11 +6,15 @@ import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
 import { markDone, markMissed, undoMark } from "@/app/actions/tasks";
+import { CoverDialog } from "@/components/panel/actions/cover-dialog";
+import { ExtraDialog } from "@/components/panel/actions/extra-dialog";
+import { NewTaskDialog } from "@/components/panel/actions/new-task-dialog";
+import { ReportDialog } from "@/components/panel/actions/report-dialog";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
 import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
 import { JudgementCard } from "@/components/panel/judgement-card";
-import { PanelActions } from "@/components/panel/panel-actions";
+import { PanelActions, type PanelActionKey } from "@/components/panel/panel-actions";
 import { PanelHeader } from "@/components/panel/panel-header";
 import { PeriodSection } from "@/components/panel/period-section";
 import { PersonSwitcher } from "@/components/panel/person-switcher";
@@ -18,7 +22,7 @@ import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
 import { birthdays, periods } from "@/lib/panel/panel-seed";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
-import type { Person, PersonSlug, ScheduledTask } from "@/lib/panel/panel-types";
+import type { JudgementItemView, Person, PersonSlug, ScheduledTask } from "@/lib/panel/panel-types";
 import type { ActionResult } from "@/lib/validation";
 
 interface FamilyPanelProps {
@@ -32,6 +36,7 @@ interface FamilyPanelProps {
   yesterdayAllowed: boolean;
   tasksToday: ScheduledTask[];
   tasksYesterday: ScheduledTask[];
+  judgements: JudgementItemView[];
 }
 
 /**
@@ -47,8 +52,10 @@ export const FamilyPanel = ({
   yesterdayAllowed,
   tasksToday,
   tasksYesterday,
+  judgements,
 }: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
+  const [openAction, setOpenAction] = useState<PanelActionKey | null>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -67,6 +74,12 @@ export const FamilyPanel = ({
       router.refresh();
     });
   };
+
+  const handleActionDone = () => {
+    router.refresh();
+  };
+
+  const others = people.filter((person) => person.slug !== selected);
 
   const runTaskAction = (action: () => Promise<ActionResult>) => {
     startTransition(async () => {
@@ -188,14 +201,44 @@ export const FamilyPanel = ({
 
         <aside className="flex flex-col gap-5 lg:col-span-5">
           <BirthdayStrip birthdays={birthdays} todayIso={today} />
-          <JudgementCard />
-          <PanelActions variant="rail" className="hidden lg:flex" />
+          <JudgementCard items={judgements} />
+          <PanelActions variant="rail" onAction={setOpenAction} className="hidden lg:flex" />
         </aside>
       </main>
 
       <PanelActions
         variant="bar"
+        onAction={setOpenAction}
         className="fixed inset-x-0 bottom-0 z-40 lg:hidden"
+      />
+
+      <ExtraDialog
+        open={openAction === "extra"}
+        onClose={() => setOpenAction(null)}
+        author={selectedPerson}
+        today={today}
+        onDone={handleActionDone}
+      />
+      <ReportDialog
+        open={openAction === "report"}
+        onClose={() => setOpenAction(null)}
+        author={selectedPerson}
+        others={others}
+        today={today}
+        onDone={handleActionDone}
+      />
+      <CoverDialog
+        open={openAction === "favor"}
+        onClose={() => setOpenAction(null)}
+        actor={selectedPerson}
+        onDone={handleActionDone}
+      />
+      <NewTaskDialog
+        open={openAction === "task"}
+        onClose={() => setOpenAction(null)}
+        people={people}
+        actor={selectedPerson}
+        onDone={handleActionDone}
       />
 
       <footer className="mx-auto w-full max-w-[1600px] px-4 pt-4 md:px-8">

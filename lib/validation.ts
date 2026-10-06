@@ -7,6 +7,7 @@ export type ActionErrorCode =
   | "TASK_NOT_FOUND"
   | "NOT_OWNER"
   | "IS_OWNER"
+  | "IS_SELF"
   | "OCCURRENCE_NOT_FOUND"
   | "ALREADY_RESOLVED"
   | "DEADLINE_PASSED"
@@ -55,4 +56,32 @@ export function isPersonId(value: unknown): value is number {
 export function isValidNote(value: unknown): value is string | null | undefined {
   if (value === null || value === undefined) return true;
   return typeof value === "string" && value.length <= 280;
+}
+
+/** Descrição de extra/dedurada: obrigatória, 1 a 280 caracteres. */
+export function isValidDescription(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= 1 && value.length <= 280;
+}
+
+/** Título de tarefa: obrigatório, 1 a 80 caracteres (igual ao check do banco). */
+export function isValidTaskTitle(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= 1 && value.length <= 80;
+}
+
+export function isTaskWeight(value: unknown): value is 1 | 2 | 3 {
+  return value === 1 || value === 2 || value === 3;
+}
+
+export function isTaskPeriod(value: unknown): value is "morning" | "afternoon" | "evening" | "anytime" {
+  return value === "morning" || value === "afternoon" || value === "evening" || value === "anytime";
+}
+
+/** ISO 1 (segunda) a 7 (domingo), sem repetição. */
+export function isWeekdayList(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((day) => Number.isInteger(day) && day >= 1 && day <= 7) &&
+    new Set(value).size === value.length
+  );
 }
