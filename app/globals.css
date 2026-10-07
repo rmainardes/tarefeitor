@@ -131,6 +131,10 @@
   --tap-min: 56px;
 }
 
+[data-mode="wall"] .app-canvas {
+  animation: pixel-shift 240s steps(1, end) infinite;
+}
+
 /* Escopo de pessoa: define os tokens da pessoa em foco */
 [data-person="pedro"] {
   --person-active: var(--person-pedro);
@@ -282,6 +286,15 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+/* Pixel-shift do modo painel (seção 8.3): desloca o layout 2 a 4px a cada
+   poucos minutos, só no modo parede, para não marcar a tela do notebook. */
+@keyframes pixel-shift {
+  0%, 24% { transform: translate(0, 0); }
+  25%, 49% { transform: translate(3px, 2px); }
+  50%, 74% { transform: translate(-2px, 3px); }
+  75%, 99% { transform: translate(2px, -3px); }
+  100% { transform: translate(0, 0); }
 }
 
 @layer components {

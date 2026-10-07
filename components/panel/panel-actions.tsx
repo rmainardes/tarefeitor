@@ -17,6 +17,8 @@ interface PanelActionsProps {
   /** `rail`: pilha no painel largo · `bar`: barra fixa no celular. */
   variant: "rail" | "bar";
   onAction: (key: PanelActionKey) => void;
+  /** Offline (seção 8.5): desativa os lançamentos, que exigem rede. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -67,7 +69,7 @@ const ACTIONS: PanelAction[] = [
 ];
 
 /** Ações sempre visíveis do painel: os quatro fluxos da seção 8.1/10 (T07). */
-export const PanelActions = ({ variant, onAction, className }: PanelActionsProps) => {
+export const PanelActions = ({ variant, onAction, disabled = false, className }: PanelActionsProps) => {
   return (
     <section
       aria-label="Ações do painel"
@@ -90,8 +92,9 @@ export const PanelActions = ({ variant, onAction, className }: PanelActionsProps
             <button
               key={action.key}
               type="button"
+              disabled={disabled}
               onClick={() => onAction(action.key)}
-              className="focus group flex items-center gap-3 rounded-md border-2 border-dashed border-border-strong/70 px-3 py-2.5 text-left transition-all duration-200 hover:border-solid hover:border-primary hover:bg-primary/5 active:scale-[0.98]"
+              className="focus group flex items-center gap-3 rounded-md border-2 border-dashed border-border-strong/70 px-3 py-2.5 text-left transition-all duration-200 hover:border-solid hover:border-primary hover:bg-primary/5 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted-foreground transition-colors group-hover:bg-primary/15 group-hover:text-primary">
                 <action.icon className="size-5" aria-hidden />
@@ -111,8 +114,9 @@ export const PanelActions = ({ variant, onAction, className }: PanelActionsProps
             <button
               key={action.key}
               type="button"
+              disabled={disabled}
               onClick={() => onAction(action.key)}
-              className="focus flex flex-col items-center gap-1 rounded-md px-1 py-1.5 text-muted-foreground transition-colors hover:text-foreground active:scale-[0.97]"
+              className="focus flex flex-col items-center gap-1 rounded-md px-1 py-1.5 text-muted-foreground transition-colors hover:text-foreground active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-foreground">
                 <action.icon className="size-4" aria-hidden />

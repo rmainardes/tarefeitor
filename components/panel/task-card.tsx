@@ -30,6 +30,8 @@ interface TaskCardProps {
   onMarkDone: () => void;
   onUndo: () => void;
   onMarkMissed: () => void;
+  /** Offline (seção 8.5): desativa as ações de escrita, mantém a leitura. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -74,12 +76,13 @@ export const TaskCard = ({
   onMarkDone,
   onUndo,
   onMarkMissed,
+  disabled = false,
   className,
 }: TaskCardProps) => {
   const { task, status, dueDate, upcoming, doneBy, note } = row;
   const ChipIcon = CHIP_ICON[status];
   const isDone = status === "done";
-  const interactive = status === "pending" || isDone || status === "missed";
+  const interactive = !disabled && (status === "pending" || isDone || status === "missed");
 
   const handlePrimary = () => {
     if (!interactive) return;
@@ -106,6 +109,7 @@ export const TaskCard = ({
 
       <button
         type="button"
+        data-task-nav="true"
         onClick={handlePrimary}
         disabled={!interactive}
         aria-pressed={isDone}
@@ -181,8 +185,9 @@ export const TaskCard = ({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
+            disabled={disabled}
             aria-label={`Mais ações para “${task.title}”`}
-            className="focus grid size-11 shrink-0 place-items-center rounded-full border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-surface-2 hover:text-foreground data-[state=open]:border-border data-[state=open]:bg-surface-2"
+            className="focus grid size-11 shrink-0 place-items-center rounded-full border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-40 data-[state=open]:border-border data-[state=open]:bg-surface-2"
           >
             <Ellipsis className="size-5" aria-hidden />
           </button>

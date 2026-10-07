@@ -7,7 +7,7 @@ import { loadPersonAgenda } from "@/lib/data/calendar";
 import { resolvePersonOccurrences } from "@/lib/data/occurrenceResolution";
 import { listPendingJudgments } from "@/lib/data/judgment";
 import { getScoreboard } from "@/lib/data/scoreboard";
-import { getQuietHours, getRetroDeadlineHour, isSoundEnabled } from "@/lib/data/settings";
+import { getNumberSetting, getQuietHours, getRetroDeadlineHour, isSoundEnabled } from "@/lib/data/settings";
 import {
   addDays,
   canMarkRetroactively,
@@ -31,16 +31,25 @@ export default async function Home() {
   const today = toISODate(now);
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [scoreboard, cookieStore, retroDeadlineHour, pendingJudgments, birthdayRecords, soundEnabled, quietHours] =
-    await Promise.all([
-      getScoreboard(now),
-      cookies(),
-      getRetroDeadlineHour(),
-      listPendingJudgments(monthStart, today),
-      listBirthdaysForMonth(parseISODate(today).month),
-      isSoundEnabled(),
-      getQuietHours(),
-    ]);
+  const [
+    scoreboard,
+    cookieStore,
+    retroDeadlineHour,
+    pendingJudgments,
+    birthdayRecords,
+    soundEnabled,
+    quietHours,
+    idleRotationSeconds,
+  ] = await Promise.all([
+    getScoreboard(now),
+    cookies(),
+    getRetroDeadlineHour(),
+    listPendingJudgments(monthStart, today),
+    listBirthdaysForMonth(parseISODate(today).month),
+    isSoundEnabled(),
+    getQuietHours(),
+    getNumberSetting("idle_rotation_seconds"),
+  ]);
 
   const birthdays = birthdayRecords.map(birthdayToPanel);
   const soundAllowed = soundEnabled && !isWithinQuietHours(hourInTimeZone(now), quietHours);
@@ -103,6 +112,7 @@ export default async function Home() {
         agendaStale={agendaStale}
         birthdays={birthdays}
         soundAllowed={soundAllowed}
+        idleRotationSeconds={idleRotationSeconds}
       />
       <Toaster />
     </>

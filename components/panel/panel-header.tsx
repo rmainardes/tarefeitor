@@ -9,6 +9,7 @@ import {
   Sun,
   SunMoon,
   Trophy,
+  WifiOff,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -27,6 +28,8 @@ interface PanelHeaderProps {
   onCycleTheme: () => void;
   mode: PanelMode;
   onToggleMode: () => void;
+  /** Sem rede (seção 8.5): mostra o selo "offline" ao lado do relógio. */
+  offline?: boolean;
 }
 
 export const PanelHeader = ({
@@ -36,6 +39,7 @@ export const PanelHeader = ({
   onCycleTheme,
   mode,
   onToggleMode,
+  offline = false,
 }: PanelHeaderProps) => {
   const ThemeIcon =
     themePref === "auto" ? SunMoon : themePref === "night" ? MoonStar : Sun;
@@ -59,6 +63,13 @@ export const PanelHeader = ({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          {offline ? (
+            <span className="t-label flex items-center gap-2 rounded-full border border-state-missed/40 bg-state-missed/12 px-3 py-2 text-state-missed shadow-soft">
+              <WifiOff className="size-4" aria-hidden />
+              <span className="hidden sm:inline">Offline</span>
+            </span>
+          ) : null}
+
           <span className="t-label hidden items-center gap-2 rounded-full border border-border bg-card px-3 py-2 shadow-soft sm:flex">
             <Clock className="size-4 text-muted-foreground" aria-hidden />
             <span className="t-numeric">{clockLabel(now)}</span>

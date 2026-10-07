@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
@@ -15,13 +15,17 @@ import { ReportDialog } from "@/components/panel/actions/report-dialog";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
 import { ConfettiBurst } from "@/components/ceremony/confetti-burst";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
+import { useIdleKiosk } from "@/components/panel/hooks/use-idle-kiosk";
+import { useOfflineCache } from "@/components/panel/hooks/use-offline-cache";
 import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
+import { usePanelShortcuts } from "@/components/panel/hooks/use-panel-shortcuts";
 import { useRealtimeUpdates } from "@/components/panel/hooks/use-realtime-updates";
 import { JudgementCard } from "@/components/panel/judgement-card";
 import { PanelActions, type PanelActionKey } from "@/components/panel/panel-actions";
 import { PanelHeader } from "@/components/panel/panel-header";
 import { PeriodSection } from "@/components/panel/period-section";
 import { PersonSwitcher } from "@/components/panel/person-switcher";
+import { QrCorner } from "@/components/panel/qr-corner";
 import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
 import { periods } from "@/lib/panel/panel-seed";
@@ -35,6 +39,9 @@ import type {
   ScheduledTask,
 } from "@/lib/panel/panel-types";
 import type { ActionResult } from "@/lib/validation";
+
+/** Ordem fixa da rotação ociosa (seção 8.3) — igual às teclas 1/2/3. */
+const ROTATION_ORDER: PersonSlug[] = ["pedro", "vania", "rodrigo"];
 
 interface FamilyPanelProps {
   people: Person[];
@@ -56,6 +63,8 @@ interface FamilyPanelProps {
   birthdays: Birthday[];
   /** `sound_enabled` e fora de `quiet_hours`, calculado no servidor (seção 8.4). */
   soundAllowed: boolean;
+  /** `idle_rotation_seconds` (seção 8.3): ociosidade até a rotação automática. */
+  idleRotationSeconds: number;
 }
 
 /**
@@ -77,11 +86,13 @@ export const FamilyPanel = ({
   agendaStale,
   birthdays,
   soundAllowed,
+  idleRotationSeconds,
 }: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
   const [openAction, setOpenAction] = useState<PanelActionKey | null>(null);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const tasksSectionRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -90,6 +101,33 @@ export const FamilyPanel = ({
   const activeDay: PanelDay = yesterdayAllowed ? day : "today";
 
   const selectedPerson = people.find((person) => person.slug === selected) ?? people[0];
+
+  const isOffline = useOfflineCache({
+    selected,
+    scores,
+    tasksToday,
+    tasksYesterday,
+    judgements,
+    agenda,
+    birthdays,
+  });
+
+  // Pessoa escolhida de propósito (clique/tecla 1-2-3), distinta da exibida
+  // durante a rotação ociosa — a interrupção volta sempre para esta (seção 8.3).
+  const manualSlugRef = useRef<PersonSlug>(initialSelected);
+  const displaySlugRef = useRef<PersonSlug>(initialSelected);
+  useEffect(() => {
+    displaySlugRef.current = selected;
+  }, [selected]);
+
+  // A rotação ociosa pode pedir uma troca de pessoa na mesma tecla que já
+  // dispara uma seleção manual (interrupção + atalho no mesmo "keydown").
+  // Para o cookie do servidor nunca ficar com um valor mais antigo que o
+  // mostrado na tela, as gravações são serializadas aqui: cada rodada grava
+  // a pessoa mais recente pedida, e repete se um pedido mais novo chegou
+  // durante a espera — a última gravação sempre corresponde à última troca.
+  const latestSlugRef = useRef<PersonSlug>(initialSelected);
+  const syncingRef = useRef(false);
 
   useRealtimeUpdates({
     onChange: (event) => {
@@ -104,15 +142,34 @@ export const FamilyPanel = ({
     },
   });
 
-  const handleSelect = (slug: PersonSlug) => {
+  const selectSlug = (slug: PersonSlug, manual: boolean) => {
+    if (manual) manualSlugRef.current = slug;
     setSelected(slug);
-    const person = people.find((candidate) => candidate.slug === slug);
-    if (!person) return;
+    latestSlugRef.current = slug;
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+
     startTransition(async () => {
-      await selectPerson(person.id);
+      let current = latestSlugRef.current;
+      for (;;) {
+        const person = people.find((candidate) => candidate.slug === current);
+        if (person) {
+          try {
+            await selectPerson(person.id);
+          } catch {
+            // Sem rede: mantém a troca só na tela deste aparelho (seção 8.5).
+            break;
+          }
+        }
+        if (latestSlugRef.current === current) break;
+        current = latestSlugRef.current;
+      }
+      syncingRef.current = false;
       router.refresh();
     });
   };
+
+  const handleSelect = (slug: PersonSlug) => selectSlug(slug, true);
 
   const handleActionDone = () => {
     router.refresh();
@@ -122,14 +179,53 @@ export const FamilyPanel = ({
 
   const runTaskAction = (action: () => Promise<ActionResult>) => {
     startTransition(async () => {
-      const result = await action();
-      if (!result.ok) {
-        toast(result.message);
-        return;
+      try {
+        const result = await action();
+        if (!result.ok) {
+          toast(result.message);
+          return;
+        }
+        router.refresh();
+      } catch {
+        toast("Sem conexão. Tente novamente quando a rede voltar.");
       }
-      router.refresh();
     });
   };
+
+  // Rotação ociosa do modo parede (seção 8.3): alterna sozinho entre as três
+  // pessoas; qualquer tecla ou movimento do mouse interrompe e volta à
+  // pessoa escolhida de propósito.
+  const handleIdleRotate = () => {
+    const currentIndex = ROTATION_ORDER.indexOf(displaySlugRef.current);
+    const next = ROTATION_ORDER[(currentIndex + 1) % ROTATION_ORDER.length];
+    selectSlug(next, false);
+  };
+
+  const handleIdleInterrupt = () => {
+    if (displaySlugRef.current !== manualSlugRef.current) {
+      selectSlug(manualSlugRef.current, false);
+    }
+  };
+
+  useIdleKiosk({
+    enabled: mode === "wall",
+    idleSeconds: idleRotationSeconds,
+    onRotate: handleIdleRotate,
+    onInterrupt: handleIdleInterrupt,
+  });
+
+  // Atalhos de teclado (seção 8.2): 1/2/3 trocam a pessoa, ↑/↓ navegam pelas
+  // tarefas, E/D/F/N abrem os diálogos de ação. Desativados com um diálogo
+  // já aberto.
+  usePanelShortcuts({
+    enabled: openAction === null,
+    tasksContainer: tasksSectionRef,
+    onSelectPerson: handleSelect,
+    onExtra: () => !isOffline && setOpenAction("extra"),
+    onReport: () => !isOffline && setOpenAction("report"),
+    onFavor: () => !isOffline && setOpenAction("favor"),
+    onNewTask: () => !isOffline && setOpenAction("task"),
+  });
 
   const rows = activeDay === "today" ? tasksToday : tasksYesterday;
   const yesterdayPending = tasksYesterday.filter((row) => row.status === "pending").length;
@@ -158,6 +254,7 @@ export const FamilyPanel = ({
         onCycleTheme={cycleTheme}
         mode={mode}
         onToggleMode={toggleMode}
+        offline={isOffline}
       />
 
       <main className="mx-auto grid w-full max-w-[1600px] flex-1 grid-cols-1 gap-5 px-4 py-5 pb-24 md:px-8 lg:grid-cols-12 lg:gap-6 lg:pb-6">
@@ -172,6 +269,7 @@ export const FamilyPanel = ({
 
         <section
           key={`${selected}-${activeDay}`}
+          ref={tasksSectionRef}
           className="flex animate-rise-in flex-col gap-5 lg:col-span-7"
           aria-label={`Tarefas de ${selectedPerson.name}`}
         >
@@ -211,6 +309,7 @@ export const FamilyPanel = ({
                   <TaskCard
                     key={row.task.id}
                     row={row}
+                    disabled={isOffline}
                     onMarkDone={() =>
                       runTaskAction(() =>
                         markDone({ taskId: row.task.id, dueDate: row.dueDate, actorId: selectedPerson.id }),
@@ -242,15 +341,23 @@ export const FamilyPanel = ({
           <AgendaStrip items={agenda} todayIso={today} tomorrowIso={tomorrow} stale={agendaStale} />
           <BirthdayStrip birthdays={birthdays} todayIso={today} />
           <JudgementCard items={judgements} />
-          <PanelActions variant="rail" onAction={setOpenAction} className="hidden lg:flex" />
+          <PanelActions
+            variant="rail"
+            onAction={setOpenAction}
+            disabled={isOffline}
+            className="hidden lg:flex"
+          />
         </aside>
       </main>
 
       <PanelActions
         variant="bar"
         onAction={setOpenAction}
+        disabled={isOffline}
         className="fixed inset-x-0 bottom-0 z-40 lg:hidden"
       />
+
+      {mode === "wall" ? <QrCorner /> : null}
 
       <ExtraDialog
         open={openAction === "extra"}
