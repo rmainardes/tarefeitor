@@ -25,8 +25,8 @@ import { monthSummary, ranking } from "@/lib/panel/ceremony-seed";
  * Cerimônia do mês fechado (seção 7.7 do plano): revelação do 3º ao 1º,
  * pódio com medalhas, prêmios e a roleta do castigo do 3º lugar.
  *
- * Dados mock (T3 do porte): fechamento de mês, julgamento e o sorteio da
- * roleta ainda não existem no servidor (T11/T12 do plano).
+ * Dados mock (T3 do porte): fechamento de mês e o sorteio da roleta ainda
+ * não existem no servidor (T12 do plano). Julgamento (T11) já é real.
  */
 export default function CerimoniaPage() {
   const { pref: themePref, cycleTheme } = usePanelChrome();

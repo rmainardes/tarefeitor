@@ -189,6 +189,8 @@ describe("judgmentToView", () => {
       description: "cozinhou para a semana inteira",
       defense: null,
       happenedOn: "2026-10-04",
+      votes: [],
+      votesNeeded: 2,
     };
 
     const view = judgmentToView(extra, peopleById);
@@ -200,6 +202,22 @@ describe("judgmentToView", () => {
     expect(view.whenLabel).toContain("feito em");
   });
 
+  it("conta os votos já registrados em votesIn", () => {
+    const extra: PendingJudgmentItem = {
+      id: "e3",
+      kind: "extra",
+      authorId: vania.id,
+      accusedId: null,
+      description: "lavou o carro",
+      defense: null,
+      happenedOn: "2026-10-04",
+      votes: [{ voterId: pedro.id, value: 2 }],
+      votesNeeded: 2,
+    };
+
+    expect(judgmentToView(extra, peopleById).votesIn).toBe(1);
+  });
+
   it("resolve autor e acusado de uma dedurada e marca 3 votos necessários", () => {
     const report: PendingJudgmentItem = {
       id: "r1",
@@ -209,6 +227,8 @@ describe("judgmentToView", () => {
       description: "não tirou o lixo direito",
       defense: "eu tirei!",
       happenedOn: "2026-10-05",
+      votes: [],
+      votesNeeded: 3,
     };
 
     const view = judgmentToView(report, peopleById);
@@ -229,6 +249,8 @@ describe("judgmentToView", () => {
       description: "algo",
       defense: null,
       happenedOn: "2026-10-04",
+      votes: [],
+      votesNeeded: 2,
     };
 
     expect(judgmentToView(extra, peopleById).authorName).toBe("alguém");

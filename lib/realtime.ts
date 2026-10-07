@@ -13,7 +13,9 @@ export type ChangeType =
   | "task_created"
   | "extra_created"
   | "report_created"
-  | "birthday_created";
+  | "birthday_created"
+  | "vote_cast"
+  | "defense_set";
 
 /** Payload mínimo do broadcast — "e nada mais" (seção 8.4). */
 export interface ChangeEvent {

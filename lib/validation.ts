@@ -8,6 +8,10 @@ export type ActionErrorCode =
   | "NOT_OWNER"
   | "IS_OWNER"
   | "IS_SELF"
+  | "IS_AUTHOR"
+  | "NOT_ACCUSED"
+  | "EXTRA_NOT_FOUND"
+  | "REPORT_NOT_FOUND"
   | "OCCURRENCE_NOT_FOUND"
   | "ALREADY_RESOLVED"
   | "DEADLINE_PASSED"
@@ -61,6 +65,16 @@ export function isValidNote(value: unknown): value is string | null | undefined 
 /** Descrição de extra/dedurada: obrigatória, 1 a 280 caracteres. */
 export function isValidDescription(value: unknown): value is string {
   return typeof value === "string" && value.trim().length >= 1 && value.length <= 280;
+}
+
+/** Defesa da dedurada: opcional (pode ser vazia), até 280 caracteres (seção 7.7). */
+export function isValidDefense(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 280;
+}
+
+/** Voto inteiro dentro do intervalo aceito pelo tipo de julgamento (seção 10). */
+export function isVoteValue(value: unknown, max: number): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= max;
 }
 
 /** Título de tarefa: obrigatório, 1 a 80 caracteres (igual ao check do banco). */

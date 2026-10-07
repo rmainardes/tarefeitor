@@ -2,9 +2,9 @@
 // ocorrências do mês até hoje com o domínio puro de pontuação.
 
 import { addDays, compareISODates, toISODate, type ISODate } from "../domain/dates";
-import { calculateMonthScore } from "../domain/scoring";
+import { calculateMonthScore, isReportUpheld } from "../domain/scoring";
 import { resolvePersonOccurrences } from "./occurrenceResolution";
-import { countPendingJudgments } from "./judgment";
+import { isExtraJudged, isReportJudged, listMonthExtras, listMonthReports } from "./judgment";
 import { listPeople, type PersonRecord } from "./people";
 import { getNumberSetting } from "./settings";
 import { countCoveredBy } from "./taskOccurrences";
@@ -34,11 +34,22 @@ export async function getScoreboard(now: Date): Promise<Scoreboard> {
   const monthStart = `${today.slice(0, 7)}-01`;
   const monthToDate = enumerateDates(monthStart, today);
 
-  const [people, favorBonus, pendingJudgments] = await Promise.all([
+  const [people, favorBonus, reportPenalty, extras, reports] = await Promise.all([
     listPeople(),
     getNumberSetting("favor_bonus"),
-    countPendingJudgments(monthStart, today),
+    getNumberSetting("report_penalty"),
+    listMonthExtras(monthStart, today),
+    listMonthReports(monthStart, today),
   ]);
+
+  const judgedExtras = extras.filter(isExtraJudged);
+  // Contestações ("não fez direito", com task_id) procedentes não entram aqui: a perda do
+  // peso da tarefa já é a punição (seção 7.3). Só a dedurada comum desconta report_penalty.
+  const judgedPlainReports = reports.filter((report) => report.taskId === null && isReportJudged(report));
+
+  const pendingJudgments =
+    extras.filter((extra) => !isExtraJudged(extra)).length +
+    reports.filter((report) => !isReportJudged(report)).length;
 
   const entries = await Promise.all(
     people.map(async (person): Promise<Omit<ScoreboardEntry, "isLeader">> => {
@@ -51,13 +62,22 @@ export async function getScoreboard(now: Date): Promise<Scoreboard> {
         .filter((item) => item.state.kind === "done" || item.state.kind === "missed")
         .map((item) => ({ weight: item.task.weight, status: item.state.kind as "done" | "missed" }));
 
+      const personJudgedExtras = judgedExtras
+        .filter((extra) => extra.authorId === person.id)
+        .map((extra) => ({ votes: extra.votes.map((vote) => vote.value) }));
+
+      const upheldReportsAgainstPerson = judgedPlainReports.filter(
+        (report) =>
+          report.accusedId === person.id && isReportUpheld(report.votes.map((vote) => vote.value)),
+      ).length;
+
       const score = calculateMonthScore({
         occurrences,
-        judgedExtras: [], // julgamento de extras entra na T11
+        judgedExtras: personJudgedExtras,
         favorsDone,
         favorBonus,
-        upheldReportsAgainstPerson: 0, // deduradas procedentes entram na T11
-        reportPenalty: 0,
+        upheldReportsAgainstPerson,
+        reportPenalty,
       });
 
       return { person, pct: score.taskPct, total: score.total };

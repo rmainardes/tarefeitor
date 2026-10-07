@@ -54,6 +54,12 @@ export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+/** `date` é o último dia do seu mês (seção 7.7: "o julgamento abre no último dia do mês"). */
+export function isLastDayOfMonth(isoDate: ISODate): boolean {
+  const { year, month, day } = parseISODate(isoDate);
+  return day === daysInMonth(year, month);
+}
+
 export function compareISODates(a: ISODate, b: ISODate): number {
   if (a < b) return -1;
   if (a > b) return 1;

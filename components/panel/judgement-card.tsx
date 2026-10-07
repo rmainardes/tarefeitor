@@ -1,4 +1,5 @@
-import { Gavel, Hourglass, Sparkles, Swords } from "lucide-react";
+import Link from "next/link";
+import { Gavel, Hourglass, Scale, Sparkles, Swords } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { JudgementItemView } from "@/lib/panel/panel-types";
@@ -10,7 +11,7 @@ interface JudgementCardProps {
 
 /**
  * Extras e deduradas aguardando votos. Enquanto não são julgados, ficam
- * fora do total do placar (seção 7.3). Votos entram na T11.
+ * fora do total do placar (seção 7.3). Defesa e votos acontecem em `/julgamento`.
  */
 export const JudgementCard = ({ items, className }: JudgementCardProps) => {
   const total = items.length;
@@ -93,6 +94,14 @@ export const JudgementCard = ({ items, className }: JudgementCardProps) => {
           ))}
         </ul>
       )}
+
+      <Link
+        href="/julgamento"
+        className="focus mt-3 flex items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border-strong/70 px-3 py-2 text-center transition-colors hover:border-solid hover:border-primary hover:bg-primary/5"
+      >
+        <Scale className="size-4 text-muted-foreground" aria-hidden />
+        <span className="t-label">Ir para o julgamento</span>
+      </Link>
     </section>
   );
 };

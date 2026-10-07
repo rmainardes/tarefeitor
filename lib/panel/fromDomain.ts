@@ -9,7 +9,7 @@
  *     vencimento; o aviso "vence dia X" de mensais futuras não tem fonte ainda.
  *   - `BoardScore.streak`: pede `lib/domain/streaks` sobre o mês inteiro.
  *   - `BoardScore.pendingJudgement` (por pessoa): julgamento ainda não atribui
- *     item a pessoa (seção 7.3, entra na T11); só existe a contagem geral.
+ *     item a pessoa (seção 7.3); só existe a contagem geral.
  */
 import type { AgendaEvent } from "@/lib/domain/calendar";
 import type { BirthdayRecord } from "@/lib/data/birthdays";
@@ -128,15 +128,7 @@ export function birthdayToPanel(record: BirthdayRecord): Birthday {
   };
 }
 
-const VOTES_NEEDED: Record<PendingJudgmentItem["kind"], number> = {
-  extra: 2,
-  report: 3,
-};
-
-/**
- * `peopleById` resolve autor/acusado para nome. `votesIn` fica em 0 — votar
- * ainda não existe (T11); por isso tudo que está aqui conta como pendente.
- */
+/** `peopleById` resolve autor/acusado para nome; `votesIn` vem dos votos já registrados. */
 export function judgmentToView(
   item: PendingJudgmentItem,
   peopleById: ReadonlyMap<number, PersonRecord>,
@@ -155,7 +147,7 @@ export function judgmentToView(
       item.kind === "extra"
         ? `feito em ${dayMonthLabel(item.happenedOn)}`
         : `aconteceu em ${dayMonthLabel(item.happenedOn)}`,
-    votesIn: 0,
-    votesNeeded: VOTES_NEEDED[item.kind],
+    votesIn: item.votes.length,
+    votesNeeded: item.votesNeeded,
   };
 }

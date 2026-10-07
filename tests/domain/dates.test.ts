@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canMarkRetroactively, hourInTimeZone, isWithinQuietHours, toISODate } from "@/lib/domain/dates";
+import {
+  canMarkRetroactively,
+  hourInTimeZone,
+  isLastDayOfMonth,
+  isWithinQuietHours,
+  toISODate,
+} from "@/lib/domain/dates";
 
 describe("toISODate", () => {
   it("usa o fuso America/Sao_Paulo, não o UTC", () => {
@@ -12,6 +18,24 @@ describe("toISODate", () => {
     // 2026-03-01T02:30Z = 2026-02-28T23:30 em São Paulo
     const instant = new Date(Date.UTC(2026, 2, 1, 2, 30));
     expect(toISODate(instant)).toBe("2026-02-28");
+  });
+});
+
+describe("isLastDayOfMonth", () => {
+  it("é falso no meio do mês", () => {
+    expect(isLastDayOfMonth("2026-10-15")).toBe(false);
+  });
+
+  it("é verdadeiro no dia 31 de um mês de 31 dias", () => {
+    expect(isLastDayOfMonth("2026-10-31")).toBe(true);
+  });
+
+  it("é verdadeiro no dia 28 de fevereiro em ano não bissexto", () => {
+    expect(isLastDayOfMonth("2026-02-28")).toBe(true);
+  });
+
+  it("é verdadeiro no dia 29 de fevereiro em ano bissexto", () => {
+    expect(isLastDayOfMonth("2028-02-29")).toBe(true);
   });
 });
 
