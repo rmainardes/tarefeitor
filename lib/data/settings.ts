@@ -54,3 +54,19 @@ export async function getQuietHours(): Promise<QuietHours> {
   }
   return { from, to };
 }
+
+/** Todos os parâmetros (tela de Configurações, seção 8.6, e exportação). */
+export async function listAllSettings(): Promise<Record<string, unknown>> {
+  const { data, error } = await getSupabaseAdmin().from("settings").select("key, value");
+  if (error) throw new Error(error.message);
+
+  const entries: Record<string, unknown> = {};
+  for (const row of data ?? []) entries[row.key] = row.value;
+  return entries;
+}
+
+/** Grava um parâmetro de `settings` (seção 10: `updateSettings`). */
+export async function updateSettingValue(key: string, value: unknown): Promise<void> {
+  const { error } = await getSupabaseAdmin().from("settings").upsert({ key, value });
+  if (error) throw new Error(error.message);
+}

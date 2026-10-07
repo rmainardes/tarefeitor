@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findTaskOwner = vi.fn();
 const insertTask = vi.fn();
+const findConfigTask = vi.fn();
+const insertConfigTask = vi.fn();
+const updateTaskInPlace = vi.fn();
+const reviseTask = vi.fn();
+const endTask = vi.fn();
 const findOccurrence = vi.fn();
 const upsertOccurrence = vi.fn();
 const deleteOccurrence = vi.fn();
@@ -14,7 +19,15 @@ const broadcastChanged = vi.fn();
 const revalidatePath = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
-vi.mock("@/lib/data/tasks", () => ({ findTaskOwner, insertTask }));
+vi.mock("@/lib/data/tasks", () => ({
+  findTaskOwner,
+  insertTask,
+  findConfigTask,
+  insertConfigTask,
+  updateTaskInPlace,
+  reviseTask,
+  endTask,
+}));
 vi.mock("@/lib/data/taskOccurrences", () => ({
   findOccurrence,
   upsertOccurrence,
@@ -27,19 +40,52 @@ vi.mock("@/lib/data/people", () => ({ personExists }));
 vi.mock("@/lib/data/auditLog", () => ({ recordAuditLog }));
 vi.mock("@/lib/data/broadcast", () => ({ broadcastChanged }));
 
-const { markDone, undoMark, markMissed, coverTask, createTask, getCoverableTasks } = await import(
-  "@/app/actions/tasks"
-);
+const {
+  markDone,
+  undoMark,
+  markMissed,
+  coverTask,
+  createTask,
+  getCoverableTasks,
+  createTaskConfig,
+  updateTask,
+  endTask: endTaskAction,
+  overrideOccurrence,
+} = await import("@/app/actions/tasks");
 const { MonthClosedError } = await import("@/lib/data/errors");
 
 const TASK_ID = "550e8400-e29b-41d4-a716-446655440000";
+const NEW_TASK_ID = "660e8400-e29b-41d4-a716-446655440000";
 const DUE_DATE = "2026-10-05";
 const OWNER_ID = 1;
 const OTHER_ID = 2;
 
+const CONFIG_TASK_BASE = {
+  id: TASK_ID,
+  personId: OWNER_ID,
+  title: "Arrumar a cama",
+  icon: "🛏️",
+  imagePath: null,
+  period: "morning" as const,
+  weight: 1 as const,
+  kind: "daily" as const,
+  weekdays: null,
+  monthDay: null,
+  onceDate: null,
+  leadDays: 0,
+  sortOrder: 10,
+  validFrom: "2026-10-01",
+  validTo: null,
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   findTaskOwner.mockResolvedValue({ id: TASK_ID, personId: OWNER_ID, weight: 1 });
+  findConfigTask.mockResolvedValue({ ...CONFIG_TASK_BASE });
+  insertConfigTask.mockResolvedValue(NEW_TASK_ID);
+  updateTaskInPlace.mockResolvedValue(undefined);
+  reviseTask.mockResolvedValue(NEW_TASK_ID);
+  endTask.mockResolvedValue(undefined);
   findOccurrence.mockResolvedValue(null);
   isMonthClosed.mockResolvedValue(false);
   getRetroDeadlineHour.mockResolvedValue(23);
@@ -362,5 +408,209 @@ describe("getCoverableTasks", () => {
 
     expect(result).toEqual([]);
     expect(listCoverableTasks).not.toHaveBeenCalled();
+  });
+});
+
+describe("createTaskConfig", () => {
+  const input = {
+    personId: OWNER_ID,
+    title: "Pagar contas",
+    icon: "💸",
+    imagePath: null,
+    period: "anytime",
+    weight: 2,
+    kind: "monthly",
+    weekdays: null,
+    monthDay: 5,
+    onceDate: null,
+    leadDays: 3,
+    sortOrder: 70,
+    actorId: OWNER_ID,
+  };
+
+  it("cria uma tarefa mensal (fora do alcance do painel)", async () => {
+    const result = await createTaskConfig(input);
+
+    expect(result).toEqual({ ok: true, data: { id: NEW_TASK_ID } });
+    expect(insertConfigTask).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "monthly", monthDay: 5, leadDays: 3, createdBy: OWNER_ID }),
+    );
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_created", personId: OWNER_ID });
+  });
+
+  it("rejeita mensal sem dia do mês", async () => {
+    const result = await createTaskConfig({ ...input, monthDay: null });
+
+    expect(result).toEqual({ ok: false, code: "INVALID_INPUT", message: expect.any(String) });
+    expect(insertConfigTask).not.toHaveBeenCalled();
+  });
+
+  it("rejeita avulsa sem data", async () => {
+    const result = await createTaskConfig({ ...input, kind: "once", monthDay: null, onceDate: null });
+
+    expect(result).toEqual({ ok: false, code: "INVALID_INPUT", message: expect.any(String) });
+    expect(insertConfigTask).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateTask", () => {
+  const input = {
+    taskId: TASK_ID,
+    personId: OWNER_ID,
+    title: "Arrumar a cama",
+    icon: "🛏️",
+    imagePath: null,
+    period: "morning",
+    weight: 1,
+    kind: "daily",
+    weekdays: null,
+    monthDay: null,
+    onceDate: null,
+    leadDays: 0,
+    sortOrder: 10,
+    actorId: OWNER_ID,
+  };
+
+  it("edita no lugar quando só título, figura, período ou ordem mudam", async () => {
+    const result = await updateTask({ ...input, title: "Arrumar a cama bem arrumada", sortOrder: 15 });
+
+    expect(result).toEqual({ ok: true, data: { id: TASK_ID } });
+    expect(updateTaskInPlace).toHaveBeenCalledWith(TASK_ID, {
+      title: "Arrumar a cama bem arrumada",
+      icon: "🛏️",
+      imagePath: null,
+      period: "morning",
+      sortOrder: 15,
+    });
+    expect(reviseTask).not.toHaveBeenCalled();
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_updated", personId: OWNER_ID });
+  });
+
+  it("cria uma nova versão sem alterar o passado quando o peso muda", async () => {
+    const result = await updateTask({ ...input, weight: 3 });
+
+    expect(result).toEqual({ ok: true, data: { id: NEW_TASK_ID } });
+    expect(reviseTask).toHaveBeenCalledWith(
+      TASK_ID,
+      expect.objectContaining({
+        weight: 3,
+        createdBy: OWNER_ID,
+        previousValidTo: expect.any(String),
+        validFrom: expect.any(String),
+      }),
+    );
+    expect(updateTaskInPlace).not.toHaveBeenCalled();
+  });
+
+  it("cria uma nova versão quando o responsável muda", async () => {
+    const result = await updateTask({ ...input, personId: OTHER_ID });
+
+    expect(result).toEqual({ ok: true, data: { id: NEW_TASK_ID } });
+    expect(reviseTask).toHaveBeenCalledWith(TASK_ID, expect.objectContaining({ personId: OTHER_ID }));
+  });
+
+  it("rejeita quando a tarefa não existe", async () => {
+    findConfigTask.mockResolvedValue(null);
+    const result = await updateTask(input);
+
+    expect(result).toEqual({ ok: false, code: "TASK_NOT_FOUND", message: expect.any(String) });
+  });
+
+  it("rejeita quando a pessoa não existe", async () => {
+    personExists.mockResolvedValue(false);
+    const result = await updateTask(input);
+
+    expect(result).toEqual({ ok: false, code: "PERSON_NOT_FOUND", message: expect.any(String) });
+    expect(updateTaskInPlace).not.toHaveBeenCalled();
+    expect(reviseTask).not.toHaveBeenCalled();
+  });
+});
+
+describe("endTask (ação)", () => {
+  it("encerra a tarefa preenchendo valid_to com ontem", async () => {
+    const result = await endTaskAction({ taskId: TASK_ID, actorId: OWNER_ID });
+
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(endTask).toHaveBeenCalledWith(TASK_ID, expect.any(String));
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_ended", personId: OWNER_ID });
+  });
+
+  it("rejeita quando a tarefa não existe", async () => {
+    findConfigTask.mockResolvedValue(null);
+    const result = await endTaskAction({ taskId: TASK_ID, actorId: OWNER_ID });
+
+    expect(result).toEqual({ ok: false, code: "TASK_NOT_FOUND", message: expect.any(String) });
+  });
+
+  it("rejeita quando a tarefa já está encerrada", async () => {
+    findConfigTask.mockResolvedValue({ ...CONFIG_TASK_BASE, validTo: "2000-01-01" });
+    const result = await endTaskAction({ taskId: TASK_ID, actorId: OWNER_ID });
+
+    expect(result).toEqual({ ok: false, code: "TASK_ALREADY_ENDED", message: expect.any(String) });
+    expect(endTask).not.toHaveBeenCalled();
+  });
+});
+
+describe("overrideOccurrence", () => {
+  it("grava o estado informado com o motivo obrigatório", async () => {
+    const result = await overrideOccurrence({
+      taskId: TASK_ID,
+      dueDate: DUE_DATE,
+      status: "excused",
+      reason: "Viagem da família",
+      actorId: OTHER_ID,
+    });
+
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(upsertOccurrence).toHaveBeenCalledWith({
+      taskId: TASK_ID,
+      dueDate: DUE_DATE,
+      status: "excused",
+      doneBy: null,
+      markedBy: OTHER_ID,
+      note: "Viagem da família",
+    });
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "occurrence_overridden", personId: OTHER_ID });
+  });
+
+  it("remove a linha quando o estado é pending", async () => {
+    const result = await overrideOccurrence({
+      taskId: TASK_ID,
+      dueDate: DUE_DATE,
+      status: "pending",
+      reason: "Marcação errada",
+      actorId: OTHER_ID,
+    });
+
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(deleteOccurrence).toHaveBeenCalledWith(TASK_ID, DUE_DATE);
+    expect(upsertOccurrence).not.toHaveBeenCalled();
+  });
+
+  it("rejeita sem motivo", async () => {
+    const result = await overrideOccurrence({
+      taskId: TASK_ID,
+      dueDate: DUE_DATE,
+      status: "done",
+      reason: "",
+      actorId: OTHER_ID,
+    });
+
+    expect(result).toEqual({ ok: false, code: "INVALID_INPUT", message: expect.any(String) });
+    expect(upsertOccurrence).not.toHaveBeenCalled();
+  });
+
+  it("rejeita quando o mês já foi fechado", async () => {
+    isMonthClosed.mockResolvedValue(true);
+    const result = await overrideOccurrence({
+      taskId: TASK_ID,
+      dueDate: DUE_DATE,
+      status: "done",
+      reason: "Esqueceu de marcar",
+      actorId: OTHER_ID,
+    });
+
+    expect(result).toEqual({ ok: false, code: "MONTH_CLOSED", message: expect.any(String) });
+    expect(upsertOccurrence).not.toHaveBeenCalled();
   });
 });

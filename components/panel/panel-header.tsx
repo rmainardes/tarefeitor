@@ -4,6 +4,7 @@ import {
   Home,
   Monitor,
   MoonStar,
+  Settings,
   Smartphone,
   Sun,
   SunMoon,
@@ -70,6 +71,15 @@ export const PanelHeader = ({
             className="focus hidden size-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft transition-colors hover:text-foreground sm:grid"
           >
             <Trophy className="size-5" aria-hidden />
+          </Link>
+
+          <Link
+            href="/config"
+            title="Configurações"
+            aria-label="Configurações"
+            className="focus grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft transition-colors hover:text-foreground"
+          >
+            <Settings className="size-5" aria-hidden />
           </Link>
 
           <button

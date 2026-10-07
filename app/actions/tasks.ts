@@ -1,21 +1,29 @@
 "use server";
 
 // Server Actions de tarefas (seção 10): markDone, undoMark, markMissed,
-// coverTask. Todas validam a entrada, verificam mês aberto e prazo, gravam,
-// registram em audit_log, emitem o broadcast em tempo real (seção 8.4) e
-// revalidam o Painel.
+// coverTask, createTask e, para a tela de Configurações (T13), updateTask,
+// endTask e overrideOccurrence. Todas validam a entrada, verificam mês
+// aberto e prazo, gravam, registram em audit_log, emitem o broadcast em
+// tempo real (seção 8.4) e revalidam as páginas afetadas.
 
 import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
 import { broadcastChanged } from "@/lib/data/broadcast";
-import { toISODate, canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
+import { addDays, toISODate, canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
+import { needsNewTaskVersion } from "@/lib/domain/taskVersioning";
 import { isMonthClosed } from "@/lib/data/months";
 import { personExists } from "@/lib/data/people";
 import { getRetroDeadlineHour } from "@/lib/data/settings";
 import {
+  endTask as endTaskRecord,
+  findConfigTask,
   findTaskOwner,
+  insertConfigTask,
   insertTask,
+  reviseTask,
+  updateTaskInPlace,
+  type ConfigTaskRecord,
   type NewTaskInput,
   type TaskOwnerRecord,
 } from "@/lib/data/tasks";
@@ -32,12 +40,20 @@ import { MonthClosedError } from "@/lib/data/errors";
 import {
   actionError,
   actionOk,
+  isDayOfMonth,
   isISODate,
+  isOccurrenceOverrideStatus,
   isPersonId,
+  isRecurrenceKind,
   isTaskPeriod,
   isTaskWeight,
   isUuid,
+  isValidImagePath,
+  isValidLeadDays,
+  isValidMandatoryReason,
   isValidNote,
+  isValidSortOrder,
+  isValidTaskIcon,
   isValidTaskTitle,
   isWeekdayList,
   type ActionResult,
@@ -345,4 +361,298 @@ export async function createTask(input: unknown): Promise<ActionResult<{ id: str
 export async function getCoverableTasks(actorId: number): Promise<CoverableTask[]> {
   if (!isPersonId(actorId)) return [];
   return listCoverableTasks(actorId, toISODate(new Date()), new Date());
+}
+
+interface ConfigTaskFields {
+  personId: number;
+  title: string;
+  icon: string;
+  imagePath: string | null;
+  period: NewTaskInput["period"];
+  weight: 1 | 2 | 3;
+  kind: "daily" | "weekly" | "monthly" | "once" | "exam_eve";
+  weekdays: number[] | null;
+  monthDay: number | null;
+  onceDate: ISODate | null;
+  leadDays: number;
+  sortOrder: number;
+}
+
+/** Validação de campos de tarefa comum à criação e à edição (tela de Configurações). */
+function isValidConfigTaskFields(value: Record<string, unknown>): boolean {
+  const { personId, title, icon, imagePath, period, weight, kind, weekdays, monthDay, onceDate, leadDays, sortOrder } =
+    value;
+
+  if (!isPersonId(personId)) return false;
+  if (!isValidTaskTitle(title) || !isValidTaskIcon(icon) || !isValidImagePath(imagePath)) return false;
+  if (!isTaskPeriod(period) || !isTaskWeight(weight)) return false;
+  if (!isRecurrenceKind(kind) || !isValidLeadDays(leadDays) || !isValidSortOrder(sortOrder)) return false;
+
+  if (kind === "weekly") {
+    if (!isWeekdayList(weekdays) || monthDay !== null || onceDate !== null) return false;
+  } else if (kind === "monthly") {
+    if (weekdays !== null || !isDayOfMonth(monthDay) || onceDate !== null) return false;
+  } else if (kind === "once") {
+    if (weekdays !== null || monthDay !== null || !isISODate(onceDate)) return false;
+  } else {
+    // daily, exam_eve
+    if (weekdays !== null || monthDay !== null || onceDate !== null) return false;
+  }
+
+  return true;
+}
+
+interface UpdateTaskInput extends ConfigTaskFields {
+  taskId: string;
+  actorId: number;
+}
+
+function validateUpdateTaskInput(input: unknown): input is UpdateTaskInput {
+  if (typeof input !== "object" || input === null) return false;
+  const { taskId, actorId, ...rest } = input as Record<string, unknown>;
+  if (!isUuid(taskId) || !isPersonId(actorId)) return false;
+  return isValidConfigTaskFields(rest);
+}
+
+function configTaskVersionFields(task: {
+  personId: number;
+  weight: number;
+  kind: string;
+  weekdays: number[] | null;
+  monthDay: number | null;
+  onceDate: ISODate | null;
+  leadDays: number;
+}) {
+  return {
+    personId: task.personId,
+    weight: task.weight,
+    kind: task.kind as ConfigTaskRecord["kind"],
+    weekdays: task.weekdays,
+    monthDay: task.monthDay,
+    onceDate: task.onceDate,
+    leadDays: task.leadDays,
+  };
+}
+
+interface CreateConfigTaskInput extends ConfigTaskFields {
+  actorId: number;
+}
+
+function validateCreateConfigTaskInput(input: unknown): input is CreateConfigTaskInput {
+  if (typeof input !== "object" || input === null) return false;
+  const { actorId, ...rest } = input as Record<string, unknown>;
+  if (!isPersonId(actorId)) return false;
+  return isValidConfigTaskFields(rest);
+}
+
+/** "Nova tarefa" na tela de Configurações (seção 8.6): todos os tipos de recorrência. */
+export async function createTaskConfig(input: unknown): Promise<ActionResult<{ id: string }>> {
+  if (!validateCreateConfigTaskInput(input)) {
+    return actionError("INVALID_INPUT", "Dados inválidos.");
+  }
+  const { actorId, ...fields } = input;
+
+  try {
+    if (!(await personExists(fields.personId))) {
+      return actionError("PERSON_NOT_FOUND", "Pessoa não encontrada.");
+    }
+
+    const id = await insertConfigTask({
+      ...fields,
+      validFrom: toISODate(new Date()),
+      createdBy: actorId,
+    });
+
+    await recordAuditLog({
+      actorId,
+      action: "createTaskConfig",
+      entity: "tasks",
+      entityId: id,
+      payload: fields,
+    });
+    await broadcastChanged({ type: "task_created", personId: actorId });
+
+    revalidatePath("/");
+    revalidatePath("/config");
+    return actionOk({ id });
+  } catch (error) {
+    return toInternalError(error);
+  }
+}
+
+/**
+ * "Editar tarefa" (seção 8.6/10, T13): título, figura e ordem são editados no
+ * lugar; peso, recorrência ou responsável encerram a versão atual e abrem
+ * uma nova (seção 6), decidido por `needsNewTaskVersion`.
+ */
+export async function updateTask(input: unknown): Promise<ActionResult<{ id: string }>> {
+  if (!validateUpdateTaskInput(input)) {
+    return actionError("INVALID_INPUT", "Dados inválidos.");
+  }
+  const { taskId, actorId, ...fields } = input;
+
+  try {
+    if (!(await personExists(fields.personId))) {
+      return actionError("PERSON_NOT_FOUND", "Pessoa não encontrada.");
+    }
+
+    const current = await findConfigTask(taskId);
+    if (!current) return actionError("TASK_NOT_FOUND", "Tarefa não encontrada.");
+
+    const today = toISODate(new Date());
+    const next = configTaskVersionFields(fields);
+
+    let id = taskId;
+    if (needsNewTaskVersion(configTaskVersionFields(current), next)) {
+      id = await reviseTask(taskId, {
+        ...next,
+        title: fields.title,
+        icon: fields.icon,
+        imagePath: fields.imagePath,
+        period: fields.period,
+        sortOrder: fields.sortOrder,
+        createdBy: actorId,
+        previousValidTo: addDays(today, -1),
+        validFrom: today,
+      });
+    } else {
+      await updateTaskInPlace(taskId, {
+        title: fields.title,
+        icon: fields.icon,
+        imagePath: fields.imagePath,
+        period: fields.period,
+        sortOrder: fields.sortOrder,
+      });
+    }
+
+    await recordAuditLog({
+      actorId,
+      action: "updateTask",
+      entity: "tasks",
+      entityId: taskId,
+      payload: { ...fields, newVersionId: id !== taskId ? id : null },
+    });
+    await broadcastChanged({ type: "task_updated", personId: actorId });
+
+    revalidatePath("/");
+    revalidatePath("/config");
+    return actionOk({ id });
+  } catch (error) {
+    return toInternalError(error);
+  }
+}
+
+interface EndTaskInput {
+  taskId: string;
+  actorId: number;
+}
+
+function validateEndTaskInput(input: unknown): input is EndTaskInput {
+  if (typeof input !== "object" || input === null) return false;
+  const { taskId, actorId } = input as Record<string, unknown>;
+  return isUuid(taskId) && isPersonId(actorId);
+}
+
+/** "Encerrar tarefa" (seção 6/8.6): preenche `valid_to`, nunca apaga. */
+export async function endTask(input: unknown): Promise<ActionResult> {
+  if (!validateEndTaskInput(input)) {
+    return actionError("INVALID_INPUT", "Dados inválidos.");
+  }
+  const { taskId, actorId } = input;
+
+  try {
+    const current = await findConfigTask(taskId);
+    if (!current) return actionError("TASK_NOT_FOUND", "Tarefa não encontrada.");
+
+    const yesterday = addDays(toISODate(new Date()), -1);
+    if (current.validTo !== null && current.validTo <= yesterday) {
+      return actionError("TASK_ALREADY_ENDED", "Essa tarefa já está encerrada.");
+    }
+
+    await endTaskRecord(taskId, yesterday);
+
+    await recordAuditLog({
+      actorId,
+      action: "endTask",
+      entity: "tasks",
+      entityId: taskId,
+      payload: { validTo: yesterday },
+    });
+    await broadcastChanged({ type: "task_ended", personId: actorId });
+
+    revalidatePath("/");
+    revalidatePath("/config");
+    return actionOk(undefined);
+  } catch (error) {
+    return toInternalError(error);
+  }
+}
+
+interface OverrideOccurrenceInput {
+  taskId: string;
+  dueDate: ISODate;
+  status: "pending" | "done" | "missed" | "covered" | "excused";
+  reason: string;
+  actorId: number;
+}
+
+function validateOverrideOccurrenceInput(input: unknown): input is OverrideOccurrenceInput {
+  if (typeof input !== "object" || input === null) return false;
+  const { taskId, dueDate, status, reason, actorId } = input as Record<string, unknown>;
+  return (
+    isUuid(taskId) &&
+    isISODate(dueDate) &&
+    isOccurrenceOverrideStatus(status) &&
+    isValidMandatoryReason(reason) &&
+    isPersonId(actorId)
+  );
+}
+
+/**
+ * "Edição pontual" (seção 8.6/10, T13): altera o estado de qualquer
+ * ocorrência de um mês aberto, com motivo obrigatório (vai para o log).
+ * `status: "pending"` remove a linha, devolvendo a ocorrência a pendente.
+ */
+export async function overrideOccurrence(input: unknown): Promise<ActionResult> {
+  if (!validateOverrideOccurrenceInput(input)) {
+    return actionError("INVALID_INPUT", "Dados inválidos.");
+  }
+  const { taskId, dueDate, status, reason, actorId } = input;
+
+  try {
+    const loaded = await loadTaskOrError(taskId);
+    if ("ok" in loaded) return loaded;
+    const { task } = loaded;
+
+    const monthError = await assertMonthOpenOrError(dueDate);
+    if (monthError) return monthError;
+
+    if (status === "pending") {
+      await deleteOccurrence(taskId, dueDate);
+    } else {
+      await upsertOccurrence({
+        taskId,
+        dueDate,
+        status,
+        doneBy: status === "done" ? task.personId : status === "covered" ? actorId : null,
+        markedBy: actorId,
+        note: reason,
+      });
+    }
+
+    await recordAuditLog({
+      actorId,
+      action: "overrideOccurrence",
+      entity: "task_occurrences",
+      entityId: `${taskId}:${dueDate}`,
+      payload: { taskId, dueDate, status, reason },
+    });
+    await broadcastChanged({ type: "occurrence_overridden", personId: actorId });
+
+    revalidatePath("/");
+    revalidatePath("/config");
+    return actionOk(undefined);
+  } catch (error) {
+    return toInternalError(error);
+  }
 }

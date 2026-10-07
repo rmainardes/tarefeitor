@@ -45,3 +45,20 @@ export async function listPeople(): Promise<PersonRecord[]> {
     examKeywords: row.exam_keywords ?? [],
   }));
 }
+
+/**
+ * Agenda (seção 8.6/10, T13): link iCal secreto e palavras-chave de prova.
+ * `icalUrl: undefined` mantém o link atual (ele nunca volta ao cliente,
+ * então o formulário não tem como reenviar o valor existente).
+ */
+export async function updatePersonCalendar(
+  personId: number,
+  icalUrl: string | null | undefined,
+  examKeywords: string[],
+): Promise<void> {
+  const update: Record<string, unknown> = { exam_keywords: examKeywords };
+  if (icalUrl !== undefined) update.ical_url = icalUrl;
+
+  const { error } = await getSupabaseAdmin().from("people").update(update).eq("id", personId);
+  if (error) throw new Error(error.message);
+}
