@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const insertBirthday = vi.fn();
 const personExists = vi.fn();
 const recordAuditLog = vi.fn();
+const broadcastChanged = vi.fn();
 const revalidatePath = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/data/birthdays", () => ({ insertBirthday }));
 vi.mock("@/lib/data/people", () => ({ personExists }));
 vi.mock("@/lib/data/auditLog", () => ({ recordAuditLog }));
+vi.mock("@/lib/data/broadcast", () => ({ broadcastChanged }));
 
 const { createBirthday } = await import("@/app/actions/birthdays");
 
@@ -20,6 +22,7 @@ beforeEach(() => {
   personExists.mockResolvedValue(true);
   insertBirthday.mockResolvedValue(BIRTHDAY_ID);
   recordAuditLog.mockResolvedValue(undefined);
+  broadcastChanged.mockResolvedValue(undefined);
 });
 
 describe("createBirthday", () => {
@@ -43,6 +46,7 @@ describe("createBirthday", () => {
     expect(recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ action: "createBirthday", actorId: CREATED_BY }),
     );
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "birthday_created", personId: CREATED_BY });
   });
 
   it("ano é opcional", async () => {

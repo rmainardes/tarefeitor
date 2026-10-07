@@ -7,8 +7,15 @@ import { loadPersonAgenda } from "@/lib/data/calendar";
 import { resolvePersonOccurrences } from "@/lib/data/occurrenceResolution";
 import { listPendingJudgments } from "@/lib/data/judgment";
 import { getScoreboard } from "@/lib/data/scoreboard";
-import { getRetroDeadlineHour } from "@/lib/data/settings";
-import { addDays, canMarkRetroactively, parseISODate, toISODate } from "@/lib/domain/dates";
+import { getQuietHours, getRetroDeadlineHour, isSoundEnabled } from "@/lib/data/settings";
+import {
+  addDays,
+  canMarkRetroactively,
+  hourInTimeZone,
+  isWithinQuietHours,
+  parseISODate,
+  toISODate,
+} from "@/lib/domain/dates";
 import {
   agendaEventToView,
   birthdayToPanel,
@@ -24,15 +31,19 @@ export default async function Home() {
   const today = toISODate(now);
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [scoreboard, cookieStore, retroDeadlineHour, pendingJudgments, birthdayRecords] = await Promise.all([
-    getScoreboard(now),
-    cookies(),
-    getRetroDeadlineHour(),
-    listPendingJudgments(monthStart, today),
-    listBirthdaysForMonth(parseISODate(today).month),
-  ]);
+  const [scoreboard, cookieStore, retroDeadlineHour, pendingJudgments, birthdayRecords, soundEnabled, quietHours] =
+    await Promise.all([
+      getScoreboard(now),
+      cookies(),
+      getRetroDeadlineHour(),
+      listPendingJudgments(monthStart, today),
+      listBirthdaysForMonth(parseISODate(today).month),
+      isSoundEnabled(),
+      getQuietHours(),
+    ]);
 
   const birthdays = birthdayRecords.map(birthdayToPanel);
+  const soundAllowed = soundEnabled && !isWithinQuietHours(hourInTimeZone(now), quietHours);
 
   const people = scoreboard.entries.map((entry) => personToPanel(entry.person));
   const scores = scoreboardToBoardScores(scoreboard.entries);
@@ -91,6 +102,7 @@ export default async function Home() {
         agenda={agenda}
         agendaStale={agendaStale}
         birthdays={birthdays}
+        soundAllowed={soundAllowed}
       />
       <Toaster />
     </>

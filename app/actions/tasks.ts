@@ -2,12 +2,13 @@
 
 // Server Actions de tarefas (seção 10): markDone, undoMark, markMissed,
 // coverTask. Todas validam a entrada, verificam mês aberto e prazo, gravam,
-// registram em audit_log e revalidam o Painel. Broadcast (seção 8.4) fica
-// para a T10.
+// registram em audit_log, emitem o broadcast em tempo real (seção 8.4) e
+// revalidam o Painel.
 
 import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
+import { broadcastChanged } from "@/lib/data/broadcast";
 import { toISODate, canMarkRetroactively, type ISODate } from "@/lib/domain/dates";
 import { isMonthClosed } from "@/lib/data/months";
 import { personExists } from "@/lib/data/people";
@@ -126,6 +127,7 @@ export async function markDone(input: unknown): Promise<ActionResult> {
       entityId: `${taskId}:${dueDate}`,
       payload: { taskId, dueDate },
     });
+    await broadcastChanged({ type: "task_done", personId: actorId });
 
     revalidatePath("/");
     return actionOk(undefined);
@@ -162,6 +164,7 @@ export async function undoMark(input: unknown): Promise<ActionResult> {
       entityId: `${taskId}:${dueDate}`,
       payload: { taskId, dueDate, previousStatus: occurrence.status },
     });
+    await broadcastChanged({ type: "task_undone", personId: actorId });
 
     revalidatePath("/");
     return actionOk(undefined);
@@ -212,6 +215,7 @@ export async function markMissed(input: unknown): Promise<ActionResult> {
       entityId: `${taskId}:${dueDate}`,
       payload: { taskId, dueDate, note: note ?? null },
     });
+    await broadcastChanged({ type: "task_missed", personId: actorId });
 
     revalidatePath("/");
     return actionOk(undefined);
@@ -266,6 +270,7 @@ export async function coverTask(input: unknown): Promise<ActionResult> {
       entityId: `${taskId}:${dueDate}`,
       payload: { taskId, dueDate },
     });
+    await broadcastChanged({ type: "task_covered", personId: actorId });
 
     revalidatePath("/");
     return actionOk(undefined);
@@ -327,6 +332,7 @@ export async function createTask(input: unknown): Promise<ActionResult<{ id: str
       entityId: id,
       payload: { personId, title, period, weight, kind, weekdays },
     });
+    await broadcastChanged({ type: "task_created", personId: createdBy });
 
     revalidatePath("/");
     return actionOk({ id });

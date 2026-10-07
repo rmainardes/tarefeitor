@@ -5,6 +5,7 @@ const createReportData = vi.fn();
 const isMonthClosed = vi.fn();
 const personExists = vi.fn();
 const recordAuditLog = vi.fn();
+const broadcastChanged = vi.fn();
 const revalidatePath = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
@@ -15,6 +16,7 @@ vi.mock("@/lib/data/judgment", () => ({
 vi.mock("@/lib/data/months", () => ({ isMonthClosed }));
 vi.mock("@/lib/data/people", () => ({ personExists }));
 vi.mock("@/lib/data/auditLog", () => ({ recordAuditLog }));
+vi.mock("@/lib/data/broadcast", () => ({ broadcastChanged }));
 
 const { createExtra, createReport } = await import("@/app/actions/judgment");
 
@@ -30,6 +32,7 @@ beforeEach(() => {
   createExtraData.mockResolvedValue(EXTRA_ID);
   createReportData.mockResolvedValue(EXTRA_ID);
   recordAuditLog.mockResolvedValue(undefined);
+  broadcastChanged.mockResolvedValue(undefined);
 });
 
 describe("createExtra", () => {
@@ -49,6 +52,7 @@ describe("createExtra", () => {
     expect(recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ actorId: AUTHOR_ID, action: "createExtra" }),
     );
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "extra_created", personId: AUTHOR_ID });
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 
@@ -85,6 +89,7 @@ describe("createReport", () => {
       description: "não tirou o lixo direito",
       happenedOn: HAPPENED_ON,
     });
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "report_created", personId: AUTHOR_ID });
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 

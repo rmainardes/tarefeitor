@@ -1,11 +1,12 @@
 "use server";
 
 // Server Action de aniversários (seção 8.1/10): cadastro, com validação,
-// log de alteração e revalidação do Painel.
+// log de alteração, broadcast em tempo real (seção 8.4) e revalidação do Painel.
 
 import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
+import { broadcastChanged } from "@/lib/data/broadcast";
 import { insertBirthday } from "@/lib/data/birthdays";
 import { personExists } from "@/lib/data/people";
 import {
@@ -59,6 +60,7 @@ export async function createBirthday(input: unknown): Promise<ActionResult<{ id:
       entityId: id,
       payload: { name: name.trim(), day, month, birthYear: birthYear ?? null },
     });
+    await broadcastChanged({ type: "birthday_created", personId: createdBy });
 
     revalidatePath("/");
     return actionOk({ id });

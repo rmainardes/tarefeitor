@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canMarkRetroactively, hourInTimeZone, toISODate } from "@/lib/domain/dates";
+import { canMarkRetroactively, hourInTimeZone, isWithinQuietHours, toISODate } from "@/lib/domain/dates";
 
 describe("toISODate", () => {
   it("usa o fuso America/Sao_Paulo, não o UTC", () => {
@@ -49,5 +49,34 @@ describe("canMarkRetroactively", () => {
     // 2026-10-07T03:10Z = 2026-10-07T00:10 em São Paulo
     const now = new Date(Date.UTC(2026, 9, 7, 3, 10));
     expect(canMarkRetroactively(dueDate, now, retroDeadlineHour)).toBe(false);
+  });
+});
+
+describe("isWithinQuietHours", () => {
+  const quietHours = { from: 22, to: 7 };
+
+  it("cruza a meia-noite: silêncio das 22h até as 7h", () => {
+    expect(isWithinQuietHours(23, quietHours)).toBe(true);
+    expect(isWithinQuietHours(0, quietHours)).toBe(true);
+    expect(isWithinQuietHours(6, quietHours)).toBe(true);
+  });
+
+  it("fora da faixa (dia), sem silêncio", () => {
+    expect(isWithinQuietHours(7, quietHours)).toBe(false);
+    expect(isWithinQuietHours(12, quietHours)).toBe(false);
+    expect(isWithinQuietHours(21, quietHours)).toBe(false);
+    expect(isWithinQuietHours(22, quietHours)).toBe(true);
+  });
+
+  it("faixa que não cruza a meia-noite", () => {
+    const daytime = { from: 13, to: 15 };
+    expect(isWithinQuietHours(12, daytime)).toBe(false);
+    expect(isWithinQuietHours(13, daytime)).toBe(true);
+    expect(isWithinQuietHours(14, daytime)).toBe(true);
+    expect(isWithinQuietHours(15, daytime)).toBe(false);
+  });
+
+  it("from igual a to nunca é silêncio", () => {
+    expect(isWithinQuietHours(10, { from: 10, to: 10 })).toBe(false);
   });
 });

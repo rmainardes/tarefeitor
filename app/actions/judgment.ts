@@ -1,12 +1,14 @@
 "use server";
 
 // Server Actions de julgamento (seção 10): createExtra, createReport. Validam
-// a entrada, verificam mês aberto, gravam, registram em audit_log e
-// revalidam o Painel. Votos e defesa entram na T11.
+// a entrada, verificam mês aberto, gravam, registram em audit_log, emitem o
+// broadcast em tempo real (seção 8.4) e revalidam o Painel. Votos e defesa
+// entram na T11.
 
 import { revalidatePath } from "next/cache";
 
 import { recordAuditLog } from "@/lib/data/auditLog";
+import { broadcastChanged } from "@/lib/data/broadcast";
 import { createExtra as insertExtra, createReport as insertReport } from "@/lib/data/judgment";
 import { isMonthClosed } from "@/lib/data/months";
 import { personExists } from "@/lib/data/people";
@@ -62,6 +64,7 @@ export async function createExtra(input: unknown): Promise<ActionResult<{ id: st
       entityId: id,
       payload: { description, happenedOn },
     });
+    await broadcastChanged({ type: "extra_created", personId: authorId });
 
     revalidatePath("/");
     return actionOk({ id });
@@ -117,6 +120,7 @@ export async function createReport(input: unknown): Promise<ActionResult<{ id: s
       entityId: id,
       payload: { accusedId, description, happenedOn },
     });
+    await broadcastChanged({ type: "report_created", personId: authorId });
 
     revalidatePath("/");
     return actionOk({ id });

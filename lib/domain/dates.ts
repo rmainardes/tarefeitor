@@ -84,3 +84,19 @@ export function canMarkRetroactively(
   if (dayComparison > 0) return false;
   return hourInTimeZone(now, timeZone) < retroDeadlineHour;
 }
+
+export interface QuietHours {
+  from: number;
+  to: number;
+}
+
+/**
+ * `hour` cai dentro do silêncio noturno (seção 6: `quiet_hours`, ex.: 22h–7h)?
+ * `from === to` nunca é silêncio; `from > to` cruza a meia-noite.
+ */
+export function isWithinQuietHours(hour: number, quietHours: QuietHours): boolean {
+  const { from, to } = quietHours;
+  if (from === to) return false;
+  if (from < to) return hour >= from && hour < to;
+  return hour >= from || hour < to;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { selectPerson } from "@/app/actions/session";
@@ -13,8 +13,10 @@ import { ExtraDialog } from "@/components/panel/actions/extra-dialog";
 import { NewTaskDialog } from "@/components/panel/actions/new-task-dialog";
 import { ReportDialog } from "@/components/panel/actions/report-dialog";
 import { BirthdayStrip } from "@/components/panel/birthday-strip";
+import { ConfettiBurst } from "@/components/ceremony/confetti-burst";
 import { DayTabs, type PanelDay } from "@/components/panel/day-tabs";
 import { usePanelChrome } from "@/components/panel/hooks/use-panel-chrome";
+import { useRealtimeUpdates } from "@/components/panel/hooks/use-realtime-updates";
 import { JudgementCard } from "@/components/panel/judgement-card";
 import { PanelActions, type PanelActionKey } from "@/components/panel/panel-actions";
 import { PanelHeader } from "@/components/panel/panel-header";
@@ -52,6 +54,8 @@ interface FamilyPanelProps {
   agendaStale: boolean;
   /** Aniversários do mês corrente (seção 7.6). */
   birthdays: Birthday[];
+  /** `sound_enabled` e fora de `quiet_hours`, calculado no servidor (seção 8.4). */
+  soundAllowed: boolean;
 }
 
 /**
@@ -72,9 +76,12 @@ export const FamilyPanel = ({
   agenda,
   agendaStale,
   birthdays,
+  soundAllowed,
 }: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
   const [openAction, setOpenAction] = useState<PanelActionKey | null>(null);
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -83,6 +90,19 @@ export const FamilyPanel = ({
   const activeDay: PanelDay = yesterdayAllowed ? day : "today";
 
   const selectedPerson = people.find((person) => person.slug === selected) ?? people[0];
+
+  useRealtimeUpdates({
+    onChange: (event) => {
+      if (event.type !== "task_done") return;
+      const person = people.find((candidate) => candidate.id === event.personId);
+      toast(`${person?.name ?? "Alguém"} concluiu uma tarefa!`);
+      setConfettiTrigger((value) => value + 1);
+      if (soundAllowed && audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+    },
+  });
 
   const handleSelect = (slug: PersonSlug) => {
     setSelected(slug);
@@ -274,6 +294,9 @@ export const FamilyPanel = ({
           casa.
         </p>
       </footer>
+
+      <ConfettiBurst trigger={confettiTrigger} />
+      <audio ref={audioRef} src="/sounds/task-done.mp3" preload="auto" className="hidden" aria-hidden />
     </div>
   );
 };

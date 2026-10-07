@@ -10,6 +10,7 @@ const isMonthClosed = vi.fn();
 const getRetroDeadlineHour = vi.fn();
 const personExists = vi.fn();
 const recordAuditLog = vi.fn();
+const broadcastChanged = vi.fn();
 const revalidatePath = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
@@ -24,6 +25,7 @@ vi.mock("@/lib/data/months", () => ({ isMonthClosed }));
 vi.mock("@/lib/data/settings", () => ({ getRetroDeadlineHour }));
 vi.mock("@/lib/data/people", () => ({ personExists }));
 vi.mock("@/lib/data/auditLog", () => ({ recordAuditLog }));
+vi.mock("@/lib/data/broadcast", () => ({ broadcastChanged }));
 
 const { markDone, undoMark, markMissed, coverTask, createTask, getCoverableTasks } = await import(
   "@/app/actions/tasks"
@@ -45,6 +47,7 @@ beforeEach(() => {
   upsertOccurrence.mockResolvedValue(undefined);
   deleteOccurrence.mockResolvedValue(undefined);
   recordAuditLog.mockResolvedValue(undefined);
+  broadcastChanged.mockResolvedValue(undefined);
   insertTask.mockResolvedValue(TASK_ID);
   listCoverableTasks.mockResolvedValue([]);
 });
@@ -66,6 +69,7 @@ describe("markDone", () => {
     expect(recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ action: "markDone", actorId: OWNER_ID }),
     );
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_done", personId: OWNER_ID });
   });
 
   it("rejeita entrada inválida sem consultar o banco", async () => {
@@ -129,6 +133,7 @@ describe("undoMark", () => {
     expect(result).toEqual({ ok: true, data: undefined });
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(deleteOccurrence).toHaveBeenCalledWith(TASK_ID, DUE_DATE);
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_undone", personId: OWNER_ID });
   });
 
   it("rejeita quando não há marcação para desfazer", async () => {
@@ -192,6 +197,7 @@ describe("markMissed", () => {
       markedBy: OTHER_ID,
       note: "esqueceu",
     });
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_missed", personId: OTHER_ID });
   });
 
   it("rejeita nota acima de 280 caracteres", async () => {
@@ -236,6 +242,7 @@ describe("coverTask", () => {
       markedBy: OTHER_ID,
       note: null,
     });
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_covered", personId: OTHER_ID });
   });
 
   it("rejeita quando o dono tenta cobrir a própria tarefa", async () => {
@@ -298,6 +305,7 @@ describe("createTask", () => {
     expect(recordAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ action: "createTask", actorId: OWNER_ID }),
     );
+    expect(broadcastChanged).toHaveBeenCalledWith({ type: "task_created", personId: OWNER_ID });
     expect(revalidatePath).toHaveBeenCalledWith("/");
   });
 
