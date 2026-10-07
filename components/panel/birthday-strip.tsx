@@ -1,5 +1,6 @@
 import { Cake, Gift } from "lucide-react";
 
+import { daysUntilBirthday } from "@/lib/domain/birthdays";
 import { cn } from "@/lib/utils";
 import { monthLabel } from "@/lib/panel/panel-schedule";
 import type { Birthday } from "@/lib/panel/panel-types";
@@ -16,7 +17,6 @@ export const BirthdayStrip = ({
   todayIso,
   className,
 }: BirthdayStripProps) => {
-  const todayDay = Number(todayIso.slice(8, 10));
   const list = [...birthdays]
     .filter((birthday) => birthday.month === Number(todayIso.slice(5, 7)))
     .sort((a, b) => a.day - b.day);
@@ -40,7 +40,7 @@ export const BirthdayStrip = ({
 
       <ul className="mt-3 flex flex-col gap-2">
         {list.map((birthday) => {
-          const days = birthday.day - todayDay;
+          const days = daysUntilBirthday(birthday, todayIso);
           const isToday = days === 0;
           return (
             <li
@@ -87,16 +87,18 @@ export const BirthdayStrip = ({
                   "t-caption shrink-0 rounded-full px-2.5 py-1",
                   isToday
                     ? "bg-accent-foreground/15 font-extrabold"
-                    : days <= 3
+                    : days > 0 && days <= 3
                       ? "bg-accent/20 text-accent-strong"
                       : "text-muted-foreground",
                 )}
               >
                 {isToday
                   ? "HOJE"
-                  : days === 1
-                    ? "amanhã"
-                    : `faltam ${days} dias`}
+                  : days < 0
+                    ? "já foi"
+                    : days === 1
+                      ? "amanhã"
+                      : `faltam ${days} dias`}
               </span>
             </li>
           );

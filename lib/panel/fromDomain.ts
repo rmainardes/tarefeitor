@@ -12,6 +12,7 @@
  *     item a pessoa (seção 7.3, entra na T11); só existe a contagem geral.
  */
 import type { AgendaEvent } from "@/lib/domain/calendar";
+import type { BirthdayRecord } from "@/lib/data/birthdays";
 import type { ResolvedTask, TaskListItem } from "@/lib/data/occurrenceResolution";
 import type { PersonRecord } from "@/lib/data/people";
 import type { ScoreboardEntry } from "@/lib/data/scoreboard";
@@ -20,6 +21,7 @@ import { dayMonthLabel } from "@/lib/panel/panel-schedule";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
 import type {
   AgendaItemView,
+  Birthday,
   JudgementItemView,
   Person,
   PersonSlug,
@@ -112,6 +114,17 @@ export function agendaEventToView(event: AgendaEvent, person: PersonRecord): Age
     dateIso: event.dateIso,
     timeLabel: event.timeLabel,
     allDay: event.allDay,
+  };
+}
+
+/** Aniversário real, já no formato do painel (seção 7.6). */
+export function birthdayToPanel(record: BirthdayRecord): Birthday {
+  return {
+    id: record.id,
+    name: record.name,
+    day: record.day,
+    month: record.month,
+    birthYear: record.birthYear ?? undefined,
   };
 }
 

@@ -2,14 +2,16 @@ import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 
 import { FamilyPanel } from "@/components/panel/family-panel";
+import { listBirthdaysForMonth } from "@/lib/data/birthdays";
 import { loadPersonAgenda } from "@/lib/data/calendar";
 import { resolvePersonOccurrences } from "@/lib/data/occurrenceResolution";
 import { listPendingJudgments } from "@/lib/data/judgment";
 import { getScoreboard } from "@/lib/data/scoreboard";
 import { getRetroDeadlineHour } from "@/lib/data/settings";
-import { addDays, canMarkRetroactively, toISODate } from "@/lib/domain/dates";
+import { addDays, canMarkRetroactively, parseISODate, toISODate } from "@/lib/domain/dates";
 import {
   agendaEventToView,
+  birthdayToPanel,
   judgmentToView,
   personToPanel,
   resolvedTaskToScheduled,
@@ -22,12 +24,15 @@ export default async function Home() {
   const today = toISODate(now);
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [scoreboard, cookieStore, retroDeadlineHour, pendingJudgments] = await Promise.all([
+  const [scoreboard, cookieStore, retroDeadlineHour, pendingJudgments, birthdayRecords] = await Promise.all([
     getScoreboard(now),
     cookies(),
     getRetroDeadlineHour(),
     listPendingJudgments(monthStart, today),
+    listBirthdaysForMonth(parseISODate(today).month),
   ]);
+
+  const birthdays = birthdayRecords.map(birthdayToPanel);
 
   const people = scoreboard.entries.map((entry) => personToPanel(entry.person));
   const scores = scoreboardToBoardScores(scoreboard.entries);
@@ -85,6 +90,7 @@ export default async function Home() {
         judgements={judgements}
         agenda={agenda}
         agendaStale={agendaStale}
+        birthdays={birthdays}
       />
       <Toaster />
     </>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { selectPerson } from "@/app/actions/session";
 import { markDone, markMissed, undoMark } from "@/app/actions/tasks";
 import { AgendaStrip } from "@/components/panel/agenda-strip";
+import { BirthdayDialog } from "@/components/panel/actions/birthday-dialog";
 import { CoverDialog } from "@/components/panel/actions/cover-dialog";
 import { ExtraDialog } from "@/components/panel/actions/extra-dialog";
 import { NewTaskDialog } from "@/components/panel/actions/new-task-dialog";
@@ -21,10 +22,11 @@ import { PeriodSection } from "@/components/panel/period-section";
 import { PersonSwitcher } from "@/components/panel/person-switcher";
 import { Scoreboard } from "@/components/panel/scoreboard";
 import { TaskCard } from "@/components/panel/task-card";
-import { birthdays, periods } from "@/lib/panel/panel-seed";
+import { periods } from "@/lib/panel/panel-seed";
 import type { BoardScore } from "@/lib/panel/panel-scoring";
 import type {
   AgendaItemView,
+  Birthday,
   JudgementItemView,
   Person,
   PersonSlug,
@@ -48,6 +50,8 @@ interface FamilyPanelProps {
   agenda: AgendaItemView[];
   /** `true` quando a leitura de alguma agenda real falhou (seção 7.5). */
   agendaStale: boolean;
+  /** Aniversários do mês corrente (seção 7.6). */
+  birthdays: Birthday[];
 }
 
 /**
@@ -67,6 +71,7 @@ export const FamilyPanel = ({
   judgements,
   agenda,
   agendaStale,
+  birthdays,
 }: FamilyPanelProps) => {
   const [selected, setSelected] = useState<PersonSlug>(initialSelected);
   const [openAction, setOpenAction] = useState<PanelActionKey | null>(null);
@@ -252,6 +257,12 @@ export const FamilyPanel = ({
         open={openAction === "task"}
         onClose={() => setOpenAction(null)}
         people={people}
+        actor={selectedPerson}
+        onDone={handleActionDone}
+      />
+      <BirthdayDialog
+        open={openAction === "birthday"}
+        onClose={() => setOpenAction(null)}
         actor={selectedPerson}
         onDone={handleActionDone}
       />

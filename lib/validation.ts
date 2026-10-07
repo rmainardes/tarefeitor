@@ -85,3 +85,27 @@ export function isWeekdayList(value: unknown): value is number[] {
     new Set(value).size === value.length
   );
 }
+
+/** Nome de aniversariante: obrigatório, 1 a 60 caracteres (igual ao check do banco). */
+export function isValidBirthdayName(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length >= 1 && value.length <= 60;
+}
+
+export function isDayOfMonth(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 31;
+}
+
+export function isMonthNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 12;
+}
+
+/** Ano de nascimento opcional: `null`/`undefined` ou inteiro plausível. */
+export function isValidBirthYear(value: unknown): value is number | null | undefined {
+  if (value === null || value === undefined) return true;
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 1900 &&
+    value <= new Date().getFullYear()
+  );
+}

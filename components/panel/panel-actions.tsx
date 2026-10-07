@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Cake,
   Handshake,
   Plus,
   Scale,
@@ -10,7 +11,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-export type PanelActionKey = "extra" | "report" | "favor" | "task";
+export type PanelActionKey = "extra" | "report" | "favor" | "task" | "birthday";
 
 interface PanelActionsProps {
   /** `rail`: pilha no painel largo · `bar`: barra fixa no celular. */
@@ -56,6 +57,13 @@ const ACTIONS: PanelAction[] = [
     hint: "recorrência e peso",
     icon: Plus,
   },
+  {
+    key: "birthday",
+    label: "Aniversário",
+    short: "Aniversário",
+    hint: "nome, dia, mês e ano",
+    icon: Cake,
+  },
 ];
 
 /** Ações sempre visíveis do painel: os quatro fluxos da seção 8.1/10 (T07). */
@@ -98,7 +106,7 @@ export const PanelActions = ({ variant, onAction, className }: PanelActionsProps
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {ACTIONS.map((action) => (
             <button
               key={action.key}
