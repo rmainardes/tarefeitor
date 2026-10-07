@@ -1,7 +1,7 @@
 // Placar do mês corrente (seção 7.3 + 8.1): para cada pessoa, cruza as
 // ocorrências do mês até hoje com o domínio puro de pontuação.
 
-import { addDays, compareISODates, toISODate, type ISODate } from "../domain/dates";
+import { enumerateDates, toISODate } from "../domain/dates";
 import { calculateMonthScore, isReportUpheld } from "../domain/scoring";
 import { resolvePersonOccurrences } from "./occurrenceResolution";
 import { isExtraJudged, isReportJudged, listMonthExtras, listMonthReports } from "./judgment";
@@ -19,14 +19,6 @@ export interface ScoreboardEntry {
 export interface Scoreboard {
   entries: ScoreboardEntry[];
   pendingJudgments: number;
-}
-
-function enumerateDates(from: ISODate, to: ISODate): ISODate[] {
-  const dates: ISODate[] = [];
-  for (let cursor = from; compareISODates(cursor, to) <= 0; cursor = addDays(cursor, 1)) {
-    dates.push(cursor);
-  }
-  return dates;
 }
 
 export async function getScoreboard(now: Date): Promise<Scoreboard> {

@@ -10,7 +10,8 @@ export type BadgeCode =
   | "pingo_bff"
   | "perfect_week"
   | "helping_hand"
-  | "clean_record";
+  | "clean_record"
+  | "snitch";
 
 /** 30 dias seguidos de "Arrumar a cama". */
 export function hasHotelBed(bedDayOutcomes: readonly DayOutcome[]): boolean {

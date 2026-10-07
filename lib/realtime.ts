@@ -15,7 +15,9 @@ export type ChangeType =
   | "report_created"
   | "birthday_created"
   | "vote_cast"
-  | "defense_set";
+  | "defense_set"
+  | "month_closed"
+  | "punishment_spun";
 
 /** Payload mínimo do broadcast — "e nada mais" (seção 8.4). */
 export interface ChangeEvent {

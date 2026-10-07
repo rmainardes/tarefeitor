@@ -66,6 +66,15 @@ export function compareISODates(a: ISODate, b: ISODate): number {
   return 0;
 }
 
+/** Todas as datas de `from` a `to`, inclusive, em ordem crescente. */
+export function enumerateDates(from: ISODate, to: ISODate): ISODate[] {
+  const dates: ISODate[] = [];
+  for (let cursor = from; compareISODates(cursor, to) <= 0; cursor = addDays(cursor, 1)) {
+    dates.push(cursor);
+  }
+  return dates;
+}
+
 export function isWithinRange(isoDate: ISODate, from: ISODate, to: ISODate | null): boolean {
   if (compareISODates(isoDate, from) < 0) return false;
   if (to !== null && compareISODates(isoDate, to) > 0) return false;

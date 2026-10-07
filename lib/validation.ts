@@ -16,6 +16,8 @@ export type ActionErrorCode =
   | "ALREADY_RESOLVED"
   | "DEADLINE_PASSED"
   | "MONTH_CLOSED"
+  | "MONTH_NOT_CLOSED"
+  | "MONTH_NOT_READY"
   | "INTERNAL_ERROR";
 
 export interface ActionError {
@@ -55,6 +57,11 @@ export function isISODate(value: unknown): value is string {
 
 export function isPersonId(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+/** `month_results.month` é sempre o dia 1 de um mês (seção 6). */
+export function isMonthStart(value: unknown): value is string {
+  return isISODate(value) && value.endsWith("-01");
 }
 
 export function isValidNote(value: unknown): value is string | null | undefined {

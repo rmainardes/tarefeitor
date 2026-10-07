@@ -13,30 +13,42 @@ import {
   listMonthExtras,
   listMonthReports,
 } from "@/lib/data/judgment";
+import { isMonthClosed } from "@/lib/data/months";
+import { getMonthReadiness } from "@/lib/data/monthScoring";
 import { listPeople, type PersonRecord } from "@/lib/data/people";
 import { getNumberSetting } from "@/lib/data/settings";
-import { isLastDayOfMonth, toISODate } from "@/lib/domain/dates";
+import { addDays, isLastDayOfMonth, toISODate } from "@/lib/domain/dates";
 import { isReportUpheld } from "@/lib/domain/scoring";
 import { personToPanel } from "@/lib/panel/fromDomain";
 import { dayMonthLabel, monthLabel } from "@/lib/panel/panel-schedule";
 import { SELECTED_PERSON_COOKIE } from "@/lib/session";
 
 /**
- * Julgamento (seção 7.7 do plano, T11): lista extras e deduradas do mês
- * corrente com defesa e votos reais. Abre oficialmente no último dia do mês,
- * mas defesa e votos já podem ser registrados antes — só informamos.
+ * Julgamento (seções 7.7 e 10, T11/T12): lista extras e deduradas do mês a
+ * revisar, com defesa e votos reais, e "Fechar mês" quando tudo estiver
+ * julgado. O mês a revisar é o anterior enquanto ele não for fechado — é ele
+ * que bloqueia o fechamento; depois disso, o mês corrente assume.
  */
 export default async function JulgamentoPage() {
   const now = new Date();
   const today = toISODate(now);
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [people, extras, reports, extraMax, cookieStore] = await Promise.all([
+  const previousMonthEnd = addDays(monthStart, -1);
+  const previousMonthStart = `${previousMonthEnd.slice(0, 7)}-01`;
+  const previousMonthClosed = await isMonthClosed(previousMonthStart);
+
+  const targetMonthStart = previousMonthClosed ? monthStart : previousMonthStart;
+  const targetMonthEnd = previousMonthClosed ? today : previousMonthEnd;
+  const reviewingPastMonth = targetMonthStart !== monthStart;
+
+  const [people, extras, reports, extraMax, cookieStore, readiness] = await Promise.all([
     listPeople(),
-    listMonthExtras(monthStart, today),
-    listMonthReports(monthStart, today),
+    listMonthExtras(targetMonthStart, targetMonthEnd),
+    listMonthReports(targetMonthStart, targetMonthEnd),
     getNumberSetting("extra_max"),
     cookies(),
+    reviewingPastMonth ? getMonthReadiness(targetMonthStart, today) : Promise.resolve(null),
   ]);
 
   const peopleById = new Map<number, PersonRecord>(people.map((person) => [person.id, person]));
@@ -101,14 +113,14 @@ export default async function JulgamentoPage() {
           <div className="min-w-0">
             <h1 className="t-headline truncate">Julgamento</h1>
             <p className="t-caption truncate text-muted-foreground">
-              Extras e deduradas de {monthLabel(today)}
+              Extras e deduradas de {monthLabel(targetMonthStart)}
             </p>
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-6 px-4 py-6 md:px-8">
-        {!judgmentOpen ? (
+        {!reviewingPastMonth && !judgmentOpen ? (
           <p className="t-body flex items-center gap-2 rounded-lg border-2 border-dashed border-border bg-card/70 p-4 text-muted-foreground">
             <CalendarClock className="size-5 shrink-0" aria-hidden />
             O julgamento abre oficialmente no último dia do mês — mas já dá para
@@ -122,6 +134,11 @@ export default async function JulgamentoPage() {
           extraMax={extraMax}
           extras={extraViews}
           reports={reportViews}
+          closeMonthTarget={
+            reviewingPastMonth && readiness
+              ? { month: targetMonthStart, ready: readiness.ready, pendingJudgments: readiness.pendingJudgments }
+              : null
+          }
         />
       </main>
     </div>

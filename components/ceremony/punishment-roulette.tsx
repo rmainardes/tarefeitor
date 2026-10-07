@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CircleHelp, Hourglass, RotateCcw, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { ConfettiBurst } from "@/components/ceremony/confetti-burst";
 import { PersonAvatar } from "@/components/panel/person-avatar";
@@ -22,20 +23,29 @@ const ICON_RADIUS = 33;
 
 interface PunishmentRouletteProps {
   thirdPlace: RankingEntry;
+  /** Já sorteado (revisita no Hall da fama): pula a roleta e mostra o resultado direto. */
+  initialPunishmentId: string | null;
+  /** Sorteio real, no servidor (seção 7.7: "só uma vez"). A animação só decora. */
+  onSpin: () => Promise<string>;
   className?: string;
 }
 
 /**
  * "Escolha o seu castigo": roleta de três opções com as fotos de cada
- * personagem. O sorteio é do servidor no app real; aqui é local.
+ * personagem. O sorteio é sempre do servidor (`onSpin`); a roleta gira até o
+ * resultado que ele devolveu, sem decidir nada no cliente.
  */
 export const PunishmentRoulette = ({
   thirdPlace,
+  initialPunishmentId,
+  onSpin,
   className,
 }: PunishmentRouletteProps) => {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState<Punishment | null>(null);
+  const [result, setResult] = useState<Punishment | null>(
+    () => punishments.find((punishment) => punishment.id === initialPunishmentId) ?? null,
+  );
   const [confetti, setConfetti] = useState(0);
   const timer = useRef<number | null>(null);
 
@@ -46,15 +56,24 @@ export const PunishmentRoulette = ({
     [],
   );
 
-  const spin = () => {
+  const spin = async () => {
     if (spinning) return;
-    const index = Math.floor(Math.random() * punishments.length);
+    setSpinning(true);
+    setResult(null);
+
+    let punishmentId: string;
+    try {
+      punishmentId = await onSpin();
+    } catch {
+      setSpinning(false);
+      toast("Não foi possível sortear o castigo. Tente de novo.");
+      return;
+    }
+
+    const index = Math.max(0, punishments.findIndex((punishment) => punishment.id === punishmentId));
     const sectorCenter = index * SECTOR + SECTOR / 2;
     const base = Math.ceil(rotation / 360) * 360;
     const target = base + 360 * 5 + (360 - sectorCenter);
-
-    setSpinning(true);
-    setResult(null);
     setRotation(target);
 
     timer.current = window.setTimeout(() => {

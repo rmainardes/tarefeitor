@@ -1,6 +1,11 @@
 /**
  * Cerimônia do mês fechado (seção 7.7 do plano).
  * `month_scores` já congelado: nada aqui muda depois do fechamento.
+ *
+ * `badgeCatalog`, `punishments` e `prizes` são catálogos fixos (vocabulário
+ * visual da seção 9, decisões 16-17 da seção 2) — não mudam de mês a mês, por
+ * isso continuam como dados estáticos aqui, usados pelos componentes de
+ * `components/ceremony` com dados reais vindos de `/cerimonia/[month]`.
  */
 import {
   BedDouble,
@@ -13,25 +18,12 @@ import {
   Mountain,
   ShieldCheck,
   Shirt,
+  Siren,
   Star,
   type LucideIcon,
 } from "lucide-react";
 
 import type { PersonSlug } from "@/lib/panel/panel-types";
-
-export interface MonthSummary {
-  monthIso: string;
-  monthTitle: string;
-  closedAtLabel: string;
-  votesLabel: string;
-}
-
-export const monthSummary: MonthSummary = {
-  monthIso: "2026-10-01",
-  monthTitle: "outubro de 2026",
-  closedAtLabel: "fechado em 31 de outubro, às 22h12",
-  votesLabel: "todos os votos registrados",
-};
 
 export interface BadgeDefinition {
   code: string;
@@ -50,6 +42,7 @@ export const badgeCatalog: Record<string, BadgeDefinition> = {
     name: "Ficha limpa",
     icon: ShieldCheck,
   },
+  snitch: { code: "snitch", name: "X-9 do mês", icon: Siren },
 };
 
 export interface RankingEntry {
@@ -63,39 +56,6 @@ export interface RankingEntry {
   streak: number;
   badges: string[];
 }
-
-export const ranking: RankingEntry[] = [
-  {
-    slug: "vania",
-    rank: 1,
-    total: 99.4,
-    taskPct: 94.4,
-    bonus: 5,
-    penalty: 0,
-    streak: 12,
-    badges: ["hotel_bed", "helping_hand", "clean_record"],
-  },
-  {
-    slug: "rodrigo",
-    rank: 2,
-    total: 88.9,
-    taskPct: 89.9,
-    bonus: 3,
-    penalty: 4,
-    streak: 3,
-    badges: ["sherpa"],
-  },
-  {
-    slug: "pedro",
-    rank: 3,
-    total: 87.0,
-    taskPct: 84.5,
-    bonus: 4,
-    penalty: 2,
-    streak: 5,
-    badges: ["pingo_bff", "perfect_week"],
-  },
-];
 
 export interface Punishment {
   id: string;

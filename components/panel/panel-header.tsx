@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Clock,
   Home,
@@ -6,6 +7,7 @@ import {
   Smartphone,
   Sun,
   SunMoon,
+  Trophy,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -60,6 +62,15 @@ export const PanelHeader = ({
             <Clock className="size-4 text-muted-foreground" aria-hidden />
             <span className="t-numeric">{clockLabel(now)}</span>
           </span>
+
+          <Link
+            href="/hall-da-fama"
+            title="Hall da fama"
+            aria-label="Hall da fama"
+            className="focus hidden size-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft transition-colors hover:text-foreground sm:grid"
+          >
+            <Trophy className="size-5" aria-hidden />
+          </Link>
 
           <button
             type="button"

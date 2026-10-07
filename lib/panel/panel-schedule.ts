@@ -66,6 +66,21 @@ export function monthLabel(isoDate: string): string {
   return monthFormatter.format(new Date(`${isoDate}T12:00:00Z`));
 }
 
+const closedAtFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: APP_TIMEZONE,
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** "fechado em 31 de outubro, às 22h12" (seção 7.7: `month_results.closed_at`). */
+export function closedAtLabel(closedAtIso: string): string {
+  const parts = closedAtFormatter.formatToParts(new Date(closedAtIso));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `fechado em ${get("day")} de ${get("month")}, às ${get("hour")}h${get("minute")}`;
+}
+
 export function clockLabel(date: Date): string {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: APP_TIMEZONE,
